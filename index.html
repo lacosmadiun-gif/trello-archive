@@ -259,7 +259,7 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
       <div class="fld">
         <label>API Key</label>
         <div class="inp-wrap">
-          <input type="password" id="apiKey" placeholder="Masukkan Trello API Key"/>
+          <input type="text" id="apiKey" placeholder="Masukkan Trello API Key" autocomplete="off" spellcheck="false"/>
           <button class="eye" onclick="tv('apiKey','ek')"><svg width="14" height="14" id="ek"><use href="#ic-eye"/></svg></button>
         </div>
       </div>
@@ -392,16 +392,25 @@ async function trelloGet(path) {
 }
 
 // Load Trello image sebagai blob URL
-// Bekerja dari https:// origin (GitHub Pages, Netlify, dll)
-// api.trello.com mengizinkan CORS GET dengan key+token
+// Trello attachment download URLs ada di trello.com (no CORS)
+// Preview URLs juga di trello.com — kita rewrite ke api.trello.com yang allow CORS
 const _imgCache = new Map();
+function toApiUrl(rawUrl) {
+  if (!rawUrl) return null;
+  // Rewrite trello.com → api.trello.com (CORS diizinkan)
+  let url = rawUrl.replace(/^https?:\/\/trello\.com\//, 'https://api.trello.com/');
+  // Strip existing auth params lalu tambah ulang
+  url = url.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+  const key = g('apiKey').value.trim();
+  const tok = g('apiToken').value.trim();
+  url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
+  return url;
+}
 async function imgBlobUrl(rawUrl) {
   if (!rawUrl) return null;
   if (_imgCache.has(rawUrl)) return _imgCache.get(rawUrl);
-  const key = g('apiKey').value.trim();
-  const tok = g('apiToken').value.trim();
-  let url = rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
-  url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
+  const url = toApiUrl(rawUrl);
+  if (!url) return null;
   try {
     const res = await fetch(url, { credentials: 'omit' });
     if (!res.ok) { _imgCache.set(rawUrl, null); return null; }
@@ -571,20 +580,22 @@ async function load(){
         const cs=await trelloGet(`/boards/${b.id}/cards/closed?fields=id,name,desc,url,dateLastActivity,labels,badges,cover&attachments=true&attachment_fields=id,name,url,bytes,previews,mimeType`);
         cs.forEach(c=>{
           const key=g('apiKey').value.trim(), tok=g('apiToken').value.trim();
-          const atts=(c.attachments||[]).map(a=>({...a}));
+          // Rewrite semua URL trello.com → api.trello.com supaya CORS diizinkan
+          const rewriteUrl = u => u ? u.replace(/^https?:\/\/trello\.com\//, 'https://api.trello.com/') : null;
+          const atts=(c.attachments||[]).map(a=>({...a,
+            url: rewriteUrl(a.url),
+            previews: (a.previews||[]).map(p=>({...p, url: rewriteUrl(p.url)}))
+          }));
           const imgs=atts.filter(a=>isImg(a.name)||(a.mimeType||'').startsWith('image/'));
           let coverUrl=null;
           if(imgs.length){
-            // Prefer attachment preview URLs — these stay on api.trello.com (no redirect, CORS OK)
             const prev=imgs[0].previews||[];
-            // Pick a medium-sized preview (400-800px wide)
             const thumb=prev.filter(p=>p.width>=300&&p.width<=900).sort((a,b)=>a.width-b.width)[0]
                         ||prev.sort((a,b)=>b.width-a.width)[0];
             coverUrl=thumb?thumb.url:imgs[0].url;
           } else if(c.cover&&c.cover.scaled&&c.cover.scaled.length){
-            // Fallback to cover.scaled (may redirect to CDN — works from localhost via XHR)
             const sc=[...c.cover.scaled].sort((a,b)=>a.width-b.width).filter(s=>s.width>=300);
-            coverUrl=(sc[0]||c.cover.scaled[0]).url;
+            coverUrl=rewriteUrl((sc[0]||c.cover.scaled[0]).url);
           }
           cards.push({...c,board:b.name,boardId:b.id,boardUrl:b.url,
             attachments:atts,imageAttachments:imgs,coverUrl});
