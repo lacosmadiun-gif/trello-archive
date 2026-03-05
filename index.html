@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trello Archive Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070a10;--s1:#0e1117;--s2:#151b26;--s3:#1c2333;
+  --border:#252d3d;--accent:#3b82f6;--adim:rgba(59,130,246,.13);
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--purple:#a78bfa;
+  --text:#e2e8f0;--muted:#64748b;--label:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--s1)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+a{color:var(--accent);text-decoration:none}
+
+/* ─ Header ─ */
+#hdr{position:sticky;top:0;z-index:50;background:rgba(7,10,16,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:11px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-ico{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-name{font-weight:700;font-size:15px;letter-spacing:-.3px}
+.logo-sub{font-size:11px;color:var(--muted)}
+.hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.conn-pill{display:none;align-items:center;gap:6px;font-size:12px;color:var(--green);background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);padding:5px 13px;border-radius:20px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+
+/* ─ Layout ─ */
+#wrap{max-width:1080px;margin:0 auto;padding:24px 18px}
+
+/* ─ Card ─ */
+.box{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:18px}
+.sec-lbl{font-family:'DM Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.sl-hr{flex:1;height:1px;background:var(--border)}
+
+/* ─ Form ─ */
+.auth-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+.fld label{display:block;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+.inp-wrap{position:relative}
+.inp-wrap input{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 36px 9px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .2s,box-shadow .2s}
+.inp-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);display:flex;padding:2px;transition:color .15s}
+.eye:hover{color:var(--label)}
+.srow{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:all .3s}
+.sdot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+.sdot.err{background:var(--red)}
+.sdot.go{background:var(--yellow);animation:bl 1.2s infinite}
+.sdot.idle{background:var(--muted)}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+#stxt{color:var(--muted);flex:1}
+
+/* ─ Buttons ─ */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-weight:600;font-size:13px;cursor:pointer;border:none;transition:all .18s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.btn-p{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;box-shadow:0 4px 14px rgba(59,130,246,.25)}
+.btn-p:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(59,130,246,.35)}
+.btn-g{background:var(--s2);color:var(--label);border:1px solid var(--border)}
+.btn-g:hover{border-color:var(--accent);color:var(--accent)}
+.btn-r{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.btn-r:hover{background:rgba(239,68,68,.16)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px}
+.dl-a{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--green);padding:6px 12px;border-radius:7px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);font-weight:600;transition:all .15s;flex-shrink:0}
+.dl-a:hover{background:rgba(16,185,129,.2);color:var(--green)}
+
+/* ─ Stats ─ */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px}
+.stat-i{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-n{font-family:'DM Mono',monospace;font-size:1.55rem;font-weight:600;line-height:1}
+.stat-l{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ─ Search ─ */
+.sbar{display:flex;gap:10px;margin-bottom:14px}
+.sw{flex:1;position:relative}
+.sw svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted)}
+.sw input{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 14px 10px 38px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border .2s,box-shadow .2s}
+.sw input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.frow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fl{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);display:flex;align-items:center;gap:4px}
+select,.nip{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:7px 11px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;transition:border .2s}
+select:focus,.nip:focus{border-color:var(--accent)}
+.nip{width:68px;font-family:'DM Mono',monospace;cursor:text}
+.dv{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--s2);color:var(--muted);transition:all .15s;display:inline-flex;align-items:center;gap:5px;user-select:none}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{border-color:var(--accent);background:var(--accent);color:#fff}
+
+/* ─ Results ─ */
+.rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.rc{font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)}
+.rc b{color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+
+/* ─ Archive card ─ */
+.ac{background:var(--s1);border:1px solid var(--border);border-radius:13px;overflow:hidden;cursor:pointer;transition:all .2s}
+.ac:hover{border-color:var(--accent);background:var(--s2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.1)}
+.cov{height:140px;background:var(--s2);overflow:hidden;position:relative}
+.cov img{width:100%;height:100%;object-fit:cover}
+.cov-fade{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(7,10,16,.75))}
+.acb{padding:14px 16px 16px}
+.btag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:var(--adim);padding:2px 8px;border-radius:4px;margin-bottom:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acn{font-weight:600;font-size:14px;line-height:1.4;margin-bottom:6px}
+.acd{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lbls{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.lp{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;color:#fff}
+.acf{display:flex;align-items:center;justify-content:space-between}
+.mr{display:flex;gap:8px}
+.mi{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.mi.pu{color:var(--purple)}
+.dtag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+
+/* ─ Empty/Loading ─ */
+.empty{text-align:center;padding:70px 20px;color:var(--muted);animation:fi .4s ease}
+.ei{width:64px;height:64px;border-radius:18px;background:var(--s2);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;border:1px solid var(--border)}
+.empty h3{font-size:17px;color:var(--label);margin-bottom:8px;font-weight:600}
+.empty p{font-size:13px;max-width:380px;margin:0 auto;line-height:1.7}
+.ldg{display:flex;flex-direction:column;align-items:center;padding:80px;gap:14px}
+.ldg p{font-size:13px;color:var(--muted)}
+
+/* ─ Spinner ─ */
+.spin{display:inline-flex;gap:4px;align-items:center}
+.sp{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:sb 1.2s infinite}
+.sp:nth-child(2){animation-delay:.16s;background:#6366f1}
+.sp:nth-child(3){animation-delay:.32s;background:var(--green)}
+@keyframes sb{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* ─ Log ─ */
+.log{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-family:'DM Mono',monospace;font-size:11px;max-height:130px;overflow-y:auto;margin-bottom:16px;display:none}
+.le{line-height:1.9}
+.lok{color:var(--green)}.lerr{color:var(--red)}.linf{color:var(--accent)}
+
+/* ─ Modal ─ */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px)}
+.ov.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:18px;width:100%;max-width:580px;max-height:88vh;display:flex;flex-direction:column;animation:fi .25s ease}
+.mhd{padding:20px 24px 0;border-bottom:1px solid var(--border);flex-shrink:0}
+.mcov{height:160px;border-radius:10px;overflow:hidden;margin-bottom:16px;background:var(--s2);display:none}
+.mcov img{width:100%;height:100%;object-fit:cover}
+.mtr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.mbtag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:var(--adim);padding:2px 8px;border-radius:4px;margin-bottom:7px}
+.mtitle{font-size:17px;font-weight:700;line-height:1.3}
+.mcls{background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--muted);display:flex;padding:7px;transition:all .15s}
+.mcls:hover{color:var(--text);border-color:var(--label)}
+.tabs{display:flex;gap:2px}
+.tab{padding:7px 15px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.tab:hover{color:var(--label)}
+.tab.on{background:var(--adim);color:var(--accent);border-bottom-color:var(--accent)}
+.tbadge{font-size:10px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:10px;display:none}
+.mbody{flex:1;overflow-y:auto;padding:20px 24px}
+.ds{margin-bottom:18px}
+.dlbl{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.dval{font-size:13px;line-height:1.7;white-space:pre-wrap}
+.mfoot{display:flex;align-items:center;gap:8px;padding:10px 0 0;border-top:1px solid var(--border);margin-top:4px;flex-wrap:wrap}
+.mdate{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.otl{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--accent);padding:5px 12px;border-radius:7px;background:var(--adim);margin-left:auto;transition:background .15s}
+.otl:hover{background:rgba(59,130,246,.22)}
+
+/* ─ Attachments ─ */
+.att{background:var(--s2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.att-prev{height:140px;background:var(--s3);overflow:hidden}
+.att-prev img{width:100%;height:100%;object-fit:cover}
+.att-row{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.att-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.att-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att-sz{font-size:11px;color:var(--muted)}
+
+/* ─ Activity ─ */
+.aitem{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.aitem:last-child{border-bottom:none}
+.aav{width:30px;height:30px;border-radius:50%;background:var(--s3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.aname{font-size:13px;font-weight:600;color:var(--label)}
+.atime{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.acmt{font-size:13px;color:var(--text);line-height:1.6;background:var(--s2);padding:8px 12px;border-radius:8px;border:1px solid var(--border);margin-top:4px}
+.aact{font-size:12px;color:var(--muted);line-height:1.5;margin-top:2px}
+
+/* ─ Toast ─ */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--s2);border-radius:12px;padding:12px 18px;font-size:13px;display:none;align-items:center;gap:8px;z-index:999;max-width:380px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:fi .3s ease}
+.toast.show{display:flex}
+.toast.ok{border:1px solid var(--green)}
+.toast.err{border:1px solid var(--red)}
+.toast.inf{border:1px solid var(--border)}
+
+mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding:0 1px}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:640px){
+  .auth-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .frow{gap:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- SVG Sprite -->
+<svg style="display:none">
+  <symbol id="ic-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 002 2h12a2 2 0 002-2V8"/><path d="M10 12h4"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 009 9 9.75 9.75 0 006.74-2.74L21 16"/><path d="M21 12a9 9 0 00-9-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M8 8H3v5"/><path d="M16 16h5v-5"/></symbol>
+  <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="ic-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="ic-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 104.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0112 5c7 0 10 7 10 7a13.16 13.16 0 01-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 002 12s3 7 10 7a9.74 9.74 0 005.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></symbol>
+  <symbol id="ic-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="ic-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+  <symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+  <symbol id="ic-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+  <symbol id="ic-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></symbol>
+  <symbol id="ic-act" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+  <symbol id="ic-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 01-8.49-8.49l8.57-8.57A4 4 0 1118 8.84l-8.59 8.57a2 2 0 01-2.83-2.83l8.49-8.48"/></symbol>
+  <symbol id="ic-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+  <symbol id="ic-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="ic-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></symbol>
+  <symbol id="ic-board" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+</svg>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div class="logo">
+    <div class="logo-ico"><svg width="16" height="16" style="stroke:#fff"><use href="#ic-archive"/></svg></div>
+    <div>
+      <div class="logo-name">Trello Archive</div>
+      <div class="logo-sub" id="lsub">Manajer Arsip Kartu</div>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <button class="btn btn-g btn-sm" onclick="toggleLang()" id="langBtn">
+      <svg width="13" height="13"><use href="#ic-globe"/></svg> EN
+    </button>
+    <button class="btn btn-g btn-sm" id="logBtn" style="display:none" onclick="toggleLog()">
+      <svg width="13" height="13"><use href="#ic-act"/></svg>
+      <span id="logBtnTxt">Log</span>
+    </button>
+    <div class="conn-pill" id="cpill">
+      <div class="conn-dot"></div>
+      <span id="cname"></span>
+    </div>
+  </div>
+</div>
+
+<div id="wrap">
+
+  <!-- Auth -->
+  <div class="box">
+    <div class="sec-lbl">
+      <svg width="13" height="13"><use href="#ic-key"/></svg>
+      <span id="lblConn">Koneksi Trello</span>
+      <span class="sl-hr"></span>
+    </div>
+    <div class="auth-grid">
+      <div class="fld">
+        <label>API Key</label>
+        <div class="inp-wrap">
+          <input type="password" id="apiKey" placeholder="Masukkan Trello API Key"/>
+          <button class="eye" onclick="tv('apiKey','ek')"><svg width="14" height="14" id="ek"><use href="#ic-eye"/></svg></button>
+        </div>
+      </div>
+      <div class="fld">
+        <label>Token</label>
+        <div class="inp-wrap">
+          <input type="password" id="apiToken" placeholder="Masukkan Trello Token"/>
+          <button class="eye" onclick="tv('apiToken','et')"><svg width="14" height="14" id="et"><use href="#ic-eye"/></svg></button>
+        </div>
+      </div>
+      <button class="btn btn-p" id="loadBtn" onclick="load()">
+        <svg width="14" height="14" style="stroke:#fff"><use href="#ic-archive"/></svg>
+        <span id="loadTxt">Muat Arsip</span>
+      </button>
+    </div>
+    <div class="srow">
+      <div class="sdot idle" id="sdot"></div>
+      <span id="stxt">Masukkan API Key dan Token Trello Anda.</span>
+      <a href="https://trello.com/app-key" target="_blank" style="margin-left:auto;font-size:11px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px">
+        <span id="gkTxt">Dapatkan Key</span><svg width="11" height="11"><use href="#ic-ext"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="log" id="logBox"></div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsRow" style="display:none">
+    <div class="stat">
+      <div class="stat-i" style="background:rgba(59,130,246,.12)"><svg width="18" height="18" style="color:var(--accent)"><use href="#ic-archive"/></svg></div>
+      <div><div class="stat-n" style="color:var(--accent)" id="stN">0</div><div class="stat-l" id="stL">Total Kartu</div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-i" style="background:rgba(167,139,250,.12)"><svg width="18" height="18" style="color:var(--purple)"><use href="#ic-img"/></svg></div>
+      <div><div class="stat-n" style="color:var(--purple)" id="siN">0</div><div class="stat-l" id="siL">Dengan Gambar</div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-i" style="background:rgba(245,158,11,.12)"><svg width="18" height="18" style="color:var(--yellow)"><use href="#ic-clip"/></svg></div>
+      <div><div class="stat-n" style="color:var(--yellow)" id="saN">0</div><div class="stat-l" id="saL">Dengan Lampiran</div></div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="box" id="fbox" style="display:none">
+    <div class="sbar">
+      <div class="sw">
+        <svg width="15" height="15"><use href="#ic-search"/></svg>
+        <input type="text" id="qi" oninput="doFilter()" placeholder="Cari nama kartu, deskripsi, label..."/>
+      </div>
+      <button class="btn btn-g btn-sm" onclick="load()" title="Refresh"><svg width="14" height="14"><use href="#ic-refresh"/></svg></button>
+      <button class="btn btn-r btn-sm" onclick="resetF()">
+        <svg width="14" height="14"><use href="#ic-x"/></svg><span id="rTxt">Reset</span>
+      </button>
+    </div>
+    <div class="frow">
+      <span class="fl"><svg width="12" height="12"><use href="#ic-board"/></svg><span id="flB">Board</span>:</span>
+      <select id="bfil" onchange="doFilter()"><option value="" id="oAB">Semua Board</option></select>
+      <span class="dv"></span>
+      <span class="fl"><svg width="12" height="12"><use href="#ic-cal"/></svg><span id="flD">Tanggal</span>:</span>
+      <input type="number" class="nip" id="fd" placeholder="Hari" min="1" max="31" oninput="doFilter()">
+      <select id="fm" onchange="doFilter()"><option value="" id="oAM">Semua Bulan</option></select>
+      <select id="fy" onchange="doFilter()"><option value="" id="oAY">Tahun</option></select>
+      <span class="dv"></span>
+      <span class="fl"><svg width="12" height="12"><use href="#ic-sort"/></svg><span id="flS">Urut</span>:</span>
+      <select id="ss" onchange="doFilter()">
+        <option value="date" id="oNw">Terbaru</option>
+        <option value="date-a" id="oOl">Terlama</option>
+        <option value="name" id="oAZ">Nama A–Z</option>
+        <option value="name-z" id="oZA">Nama Z–A</option>
+      </select>
+      <span class="dv"></span>
+      <span class="chip" id="chI" onclick="togChip('i')"><svg width="12" height="12"><use href="#ic-img"/></svg><span id="chITxt">Dengan Gambar</span></span>
+      <span class="chip" id="chA" onclick="togChip('a')"><svg width="12" height="12"><use href="#ic-clip"/></svg><span id="chATxt">Dengan Lampiran</span></span>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="res">
+    <div class="empty">
+      <div class="ei"><svg width="28" height="28" style="color:var(--muted)"><use href="#ic-archive"/></svg></div>
+      <h3 id="emH">Siap Memuat Arsip</h3>
+      <p id="emP">Masukkan API Key & Token Trello, lalu klik Muat Arsip untuk melihat semua kartu yang diarsipkan.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="ov" id="ov" onclick="closeOv(event)">
+  <div class="modal">
+    <div class="mhd">
+      <div class="mcov" id="mcov"><img id="mcovI" src="" alt="" onerror="this.parentElement.style.display='none'"></div>
+      <div class="mtr">
+        <div style="min-width:0">
+          <div class="mbtag"><svg width="10" height="10"><use href="#ic-board"/></svg><span id="mBoard"></span></div>
+          <div class="mtitle" id="mTitle"></div>
+        </div>
+        <button class="mcls" onclick="closeM()"><svg width="15" height="15"><use href="#ic-x"/></svg></button>
+      </div>
+      <div class="tabs">
+        <button class="tab on" id="tabD" onclick="switchTab('d')"><svg width="13" height="13"><use href="#ic-file"/></svg><span id="tD">Deskripsi</span></button>
+        <button class="tab" id="tabA" onclick="switchTab('a')"><svg width="13" height="13"><use href="#ic-clip"/></svg><span id="tA">Lampiran</span><span class="tbadge" id="abadge">0</span></button>
+        <button class="tab" id="tabAc" onclick="switchTab('ac')"><svg width="13" height="13"><use href="#ic-act"/></svg><span id="tAc">Aktivitas</span></button>
+      </div>
+    </div>
+    <div class="mbody" id="mbody"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><svg width="16" height="16" id="tIco"></svg><span id="tMsg"></span></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// Direct fetch to Trello API
+// Works when opened via local web server (http://localhost)
+// ─────────────────────────────────────────────────────────────────────────
+async function trelloGet(path) {
+  const key = g('apiKey').value.trim();
+  const tok = g('apiToken').value.trim();
+  const url = `https://api.trello.com/1${path}${path.includes('?')?'&':'?'}key=${key}&token=${tok}`;
+  const res = await fetch(url, {credentials:'omit'});
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    if (res.status === 401) msg = lang==='id' ? 'API Key atau Token tidak valid.' : 'Invalid API Key or Token.';
+    if (res.status === 403) msg = lang==='id' ? 'Akses ditolak. Pastikan Token punya izin baca.' : 'Access denied. Ensure Token has read permission.';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+// Load Trello image sebagai blob URL
+// Bekerja dari https:// origin (GitHub Pages, Netlify, dll)
+// api.trello.com mengizinkan CORS GET dengan key+token
+const _imgCache = new Map();
+async function imgBlobUrl(rawUrl) {
+  if (!rawUrl) return null;
+  if (_imgCache.has(rawUrl)) return _imgCache.get(rawUrl);
+  const key = g('apiKey').value.trim();
+  const tok = g('apiToken').value.trim();
+  let url = rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+  url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
+  try {
+    const res = await fetch(url, { credentials: 'omit' });
+    if (!res.ok) { _imgCache.set(rawUrl, null); return null; }
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/') || blob.size < 200) { _imgCache.set(rawUrl, null); return null; }
+    const burl = URL.createObjectURL(blob);
+    _imgCache.set(rawUrl, burl);
+    return burl;
+  } catch(e) { _imgCache.set(rawUrl, null); return null; }
+}
+
+
+// ── i18n ──────────────────────────────────────────────────────────────────
+const L = {
+  id:{
+    lsub:'Manajer Arsip Kartu',conn:'Koneksi Trello',kph:'Masukkan Trello API Key',
+    tph:'Masukkan Trello Token',lbtn:'Muat Arsip',ldg:'Memuat...',
+    gk:'Dapatkan Key',sdef:'Masukkan API Key dan Token Trello Anda.',
+    qph:'Cari nama kartu, deskripsi, label...',ab:'Semua Board',
+    am:'Semua Bulan',ay:'Tahun',rst:'Reset',
+    fb:'Board',fd:'Tanggal',fs:'Urut',
+    nw:'Terbaru',ol:'Terlama',az:'Nama A–Z',za:'Nama Z–A',
+    wi:'Dengan Gambar',wa:'Dengan Lampiran',
+    stot:'Total Kartu',simg:'Dengan Gambar',satt:'Dengan Lampiran',
+    shw:'Menampilkan',of:'dari',cl:'kartu arsip',
+    nor:'Tidak Ada Hasil',nord:'Coba ubah kata kunci atau filter pencarian.',
+    emh:'Siap Memuat Arsip',emp:'Masukkan API Key & Token Trello, lalu klik Muat Arsip.',
+    td:'Deskripsi',ta:'Lampiran',tac:'Aktivitas',
+    llbl:'Label',ldsc:'Deskripsi',lact:'Aktivitas Terakhir',
+    nod:'Tidak ada deskripsi',noa:'Tidak ada aktivitas',noat:'Tidak ada lampiran',
+    otr:'Buka di Trello',dl:'Unduh',ldact:'Memuat aktivitas...',
+    log:'Log',lng:'EN',
+    months:['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
+  },
+  en:{
+    lsub:'Card Archive Manager',conn:'Trello Connection',kph:'Enter Trello API Key',
+    tph:'Enter Trello Token',lbtn:'Load Archives',ldg:'Loading...',
+    gk:'Get Key',sdef:'Enter your Trello API Key and Token to begin.',
+    qph:'Search card name, description, label...',ab:'All Boards',
+    am:'All Months',ay:'Year',rst:'Reset',
+    fb:'Board',fd:'Date',fs:'Sort',
+    nw:'Newest',ol:'Oldest',az:'Name A–Z',za:'Name Z–A',
+    wi:'With Images',wa:'With Attachments',
+    stot:'Total Cards',simg:'With Images',satt:'With Attachments',
+    shw:'Showing',of:'of',cl:'archived cards',
+    nor:'No Results',nord:'Try different keywords or adjust your filters.',
+    emh:'Ready to Load Archives',emp:'Enter your Trello API Key & Token, then click Load Archives.',
+    td:'Description',ta:'Attachments',tac:'Activity',
+    llbl:'Labels',ldsc:'Description',lact:'Last Activity',
+    nod:'No description',noa:'No activity found',noat:'No attachments',
+    otr:'Open in Trello',dl:'Download',ldact:'Loading activity...',
+    log:'Log',lng:'ID',
+    months:['January','February','March','April','May','June','July','August','September','October','November','December']
+  }
+};
+
+let lang='id', cards=[], boards=[], fI=false, fA=false, curCard=null, _toastT, _acts=null;
+const g = id => document.getElementById(id);
+const T = k => L[lang][k]||k;
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const LC = {green:'#22c55e',yellow:'#eab308',orange:'#f97316',red:'#ef4444',purple:'#a855f7',blue:'#3b82f6',sky:'#0ea5e9',lime:'#84cc16',pink:'#ec4899',black:'#475569'};
+const lc = c => LC[c]||c||'#64748b';
+const isImg = n => /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(n||'');
+
+function fmtD(d){if(!d)return'–';const dt=new Date(d),m=T('months');return`${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}`;}
+function fmtDT(d){if(!d)return'–';const dt=new Date(d),m=T('months');const hm=dt.toLocaleTimeString(lang==='id'?'id-ID':'en-US',{hour:'2-digit',minute:'2-digit'});return`${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()}, ${hm}`;}
+function hl(s,q){if(!q||!s)return esc(s);const re=new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');return esc(s).replace(re,'<mark>$1</mark>');}
+
+function tv(id,ei){const i=g(id),e=g(ei),sh=i.type==='password';i.type=sh?'text':'password';e.innerHTML=`<use href="${sh?'#ic-eye-off':'#ic-eye'}"/>`;}
+
+function toast(msg,type='inf'){
+  const t=g('toast'),i=g('tIco');
+  t.className=`toast show ${type}`;
+  g('tMsg').textContent=msg;
+  i.innerHTML=`<use href="${type==='ok'?'#ic-check':type==='err'?'#ic-x':'#ic-info'}"/>`;
+  i.style.color=type==='ok'?'var(--green)':type==='err'?'var(--red)':'var(--accent)';
+  clearTimeout(_toastT);_toastT=setTimeout(()=>t.className='toast',4000);
+}
+
+function setS(type,msg){g('sdot').className=`sdot ${type}`;g('stxt').textContent=msg;}
+
+function addLog(msg,type='info'){
+  const lb=g('logBox');
+  lb.innerHTML+=`<div class="le ${type==='ok'?'lok':type==='err'?'lerr':'linf'}">[${new Date().toLocaleTimeString()}] ${esc(msg)}</div>`;
+  lb.scrollTop=lb.scrollHeight;
+  g('logBtn').style.display='flex';
+}
+function toggleLog(){const lb=g('logBox');lb.style.display=lb.style.display==='block'?'none':'block';}
+
+// ── Lang ──────────────────────────────────────────────────────────────────
+function toggleLang(){lang=lang==='id'?'en':'id';applyLang();}
+function applyLang(){
+  const l=L[lang];
+  g('lsub').textContent=l.lsub;
+  g('lblConn').textContent=l.conn;
+  g('apiKey').placeholder=l.kph;
+  g('apiToken').placeholder=l.tph;
+  g('loadTxt').textContent=l.lbtn;
+  g('gkTxt').textContent=l.gk;
+  g('stxt').textContent=l.sdef;
+  g('qi').placeholder=l.qph;
+  g('oAB').textContent=l.ab;
+  g('oAY').textContent=l.ay;
+  g('oNw').textContent=l.nw;
+  g('oOl').textContent=l.ol;
+  g('oAZ').textContent=l.az;
+  g('oZA').textContent=l.za;
+  g('rTxt').textContent=l.rst;
+  g('chITxt').textContent=l.wi;
+  g('chATxt').textContent=l.wa;
+  g('stL').textContent=l.stot;
+  g('siL').textContent=l.simg;
+  g('saL').textContent=l.satt;
+  g('flB').textContent=l.fb;
+  g('flD').textContent=l.fd;
+  g('flS').textContent=l.fs;
+  g('tD').textContent=l.td;
+  g('tA').textContent=l.ta;
+  g('tAc').textContent=l.tac;
+  g('logBtnTxt').textContent=l.log;
+  g('emH').textContent=l.emh;
+  g('emP').textContent=l.emp;
+  g('langBtn').innerHTML=`<svg width="13" height="13"><use href="#ic-globe"/></svg> ${l.lng}`;
+  rebuildMonths();
+  if(cards.length) doFilter();
+}
+
+function rebuildMonths(){
+  const s=g('fm'),cur=s.value;
+  s.innerHTML=`<option value="">${T('am')}</option>`;
+  T('months').forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;if((i+1)==cur)o.selected=true;s.appendChild(o);});
+}
+
+// ── Load ──────────────────────────────────────────────────────────────────
+async function load(){
+  const key=g('apiKey').value.trim(),tok=g('apiToken').value.trim();
+  if(!key||!tok){toast(lang==='id'?'Masukkan API Key dan Token!':'Enter API Key and Token!','err');return;}
+
+  g('loadBtn').disabled=true;
+  g('loadTxt').innerHTML=`<span class="spin"><span class="sp"></span><span class="sp"></span><span class="sp"></span></span> ${T('ldg')}`;
+  g('logBox').innerHTML='';
+  cards=[];boards=[];
+  setS('go',lang==='id'?'Menghubungkan ke Trello...':'Connecting to Trello...');
+  g('statsRow').style.display='none';
+  g('fbox').style.display='none';
+  g('res').innerHTML=`<div class="ldg"><div class="spin"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div><p>${lang==='id'?'Memuat data...':'Loading data...'}</p></div>`;
+
+  try {
+    const me = await trelloGet('/members/me?fields=fullName,username');
+    addLog(`Connected: ${me.fullName} (@${me.username})`,'ok');
+    g('cpill').style.display='flex';
+    g('cname').textContent=me.fullName;
+
+    const bl = await trelloGet('/members/me/boards?filter=open&fields=id,name,url,dateLastActivity');
+    boards=bl;
+    addLog(`${bl.length} board(s)`,'ok');
+
+    const bf=g('bfil');
+    bf.innerHTML=`<option value="">${T('ab')}</option>`;
+    bl.forEach(b=>{const o=document.createElement('option');o.value=b.id;o.textContent=b.name;bf.appendChild(o);});
+
+    const ys=new Set();
+
+    for(const b of bl){
+      setS('go',(lang==='id'?'Memuat dari: ':'Loading: ')+b.name);
+      try{
+        const cs=await trelloGet(`/boards/${b.id}/cards/closed?fields=id,name,desc,url,dateLastActivity,labels,badges,cover&attachments=true&attachment_fields=id,name,url,bytes,previews,mimeType`);
+        cs.forEach(c=>{
+          const key=g('apiKey').value.trim(), tok=g('apiToken').value.trim();
+          const atts=(c.attachments||[]).map(a=>({...a}));
+          const imgs=atts.filter(a=>isImg(a.name)||(a.mimeType||'').startsWith('image/'));
+          let coverUrl=null;
+          if(imgs.length){
+            // Prefer attachment preview URLs — these stay on api.trello.com (no redirect, CORS OK)
+            const prev=imgs[0].previews||[];
+            // Pick a medium-sized preview (400-800px wide)
+            const thumb=prev.filter(p=>p.width>=300&&p.width<=900).sort((a,b)=>a.width-b.width)[0]
+                        ||prev.sort((a,b)=>b.width-a.width)[0];
+            coverUrl=thumb?thumb.url:imgs[0].url;
+          } else if(c.cover&&c.cover.scaled&&c.cover.scaled.length){
+            // Fallback to cover.scaled (may redirect to CDN — works from localhost via XHR)
+            const sc=[...c.cover.scaled].sort((a,b)=>a.width-b.width).filter(s=>s.width>=300);
+            coverUrl=(sc[0]||c.cover.scaled[0]).url;
+          }
+          cards.push({...c,board:b.name,boardId:b.id,boardUrl:b.url,
+            attachments:atts,imageAttachments:imgs,coverUrl});
+          if(c.dateLastActivity) ys.add(new Date(c.dateLastActivity).getFullYear());
+
+        });
+        addLog(`${b.name}: ${cs.length} cards`,'ok');
+      }catch(e){addLog(`${b.name}: failed – ${e.message}`,'err');}
+    }
+
+    const yf=g('fy');
+    yf.innerHTML=`<option value="">${T('ay')}</option>`;
+    [...ys].sort((a,b)=>b-a).forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;yf.appendChild(o);});
+
+    g('stN').textContent=cards.length;
+    g('siN').textContent=cards.filter(c=>c.imageAttachments.length>0).length;
+    g('saN').textContent=cards.filter(c=>c.attachments.length>0).length;
+    g('statsRow').style.display='grid';
+    g('fbox').style.display='block';
+
+    const msg=lang==='id'?`${cards.length} kartu arsip dimuat dari ${bl.length} board.`:`${cards.length} archived cards from ${bl.length} boards.`;
+    setS('ok',msg);toast(msg,'ok');
+    addLog(`Done. Total: ${cards.length}`,'ok');
+    doFilter();
+  }catch(e){
+    setS('err',(lang==='id'?'Gagal: ':'Failed: ')+e.message);
+    toast(e.message,'err');
+    addLog('ERROR: '+e.message,'err');
+    g('res').innerHTML=`<div class="empty"><div class="ei"><svg width="28" height="28" style="color:var(--red)"><use href="#ic-x"/></svg></div><h3>${lang==='id'?'Gagal Memuat':'Load Failed'}</h3><p>${esc(e.message)}</p></div>`;
+  }
+  g('loadBtn').disabled=false;
+  g('loadTxt').textContent=T('lbtn');
+}
+
+// ── Filter ────────────────────────────────────────────────────────────────
+function togChip(t){
+  if(t==='i'){fI=!fI;g('chI').className='chip'+(fI?' on':'');}
+  else{fA=!fA;g('chA').className='chip'+(fA?' on':'');}
+  doFilter();
+}
+function resetF(){
+  g('qi').value='';g('bfil').value='';g('fd').value='';
+  g('fm').value='';g('fy').value='';g('ss').value='date';
+  fI=false;fA=false;g('chI').className='chip';g('chA').className='chip';
+  doFilter();
+}
+function doFilter(){
+  const q=g('qi').value.toLowerCase().trim();
+  const bF=g('bfil').value;
+  const day=parseInt(g('fd').value)||0;
+  const month=parseInt(g('fm').value)||0;
+  const year=parseInt(g('fy').value)||0;
+  const sort=g('ss').value;
+
+  let r=cards.filter(c=>{
+    if(bF&&c.boardId!==bF)return false;
+    if(fI&&!c.imageAttachments.length)return false;
+    if(fA&&!c.attachments.length)return false;
+    if(c.dateLastActivity){
+      const dt=new Date(c.dateLastActivity);
+      if(year&&dt.getFullYear()!==year)return false;
+      if(month&&dt.getMonth()+1!==month)return false;
+      if(day&&dt.getDate()!==day)return false;
+    }
+    if(q){const h=[c.name,c.desc,c.board,...(c.labels||[]).map(l=>l.name||'')].join(' ').toLowerCase();if(!h.includes(q))return false;}
+    return true;
+  });
+  r.sort((a,b)=>{
+    if(sort==='name')return a.name.localeCompare(b.name);
+    if(sort==='name-z')return b.name.localeCompare(a.name);
+    if(sort==='date')return new Date(b.dateLastActivity||0)-new Date(a.dateLastActivity||0);
+    if(sort==='date-a')return new Date(a.dateLastActivity||0)-new Date(b.dateLastActivity||0);
+    return 0;
+  });
+  window._fc=r;
+  renderCards(r,q);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function renderCards(items,q=''){
+  const area=g('res');
+  if(!items.length){
+    area.innerHTML=`<div class="empty"><div class="ei"><svg width="22" height="22" style="color:var(--muted)"><use href="#ic-search"/></svg></div><h3>${T('nor')}</h3><p>${T('nord')}</p></div>`;
+    return;
+  }
+  const hdr=`<div class="rh"><span class="rc">${T('shw')} <b>${items.length}</b> ${T('of')} ${cards.length} ${T('cl')}</span></div>`;
+  const html=items.map((c,i)=>{
+    const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
+    // Cover: render placeholder div, load blob async after render
+    const cov=c.coverUrl?`<div class="cov" id="cov-${i}"><div style="width:100%;height:100%;background:var(--s3);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" style="color:var(--border)"><use href="#ic-img"/></svg></div><div class="cov-fade"></div></div>`:'';
+    const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
+    const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''
+    }${c.imageAttachments.length?`<span class="mi pu"><svg width="12" height="12" style="color:var(--purple)"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}</div>`;
+    return`<div class="ac" onclick="openCard(${i})">${cov}
+      <div class="acb">
+        <div class="btag"><svg width="10" height="10"><use href="#ic-board"/></svg>${hl(c.board,q)}</div>
+        <div class="acn">${hl(c.name,q)}</div>
+        ${dsc}${lbls?`<div class="lbls">${lbls}</div>`:''}
+        <div class="acf">${mt}<span class="dtag"><svg width="11" height="11"><use href="#ic-cal"/></svg>${fmtD(c.dateLastActivity)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+  area.innerHTML=hdr+`<div class="grid">${html}</div>`;
+
+  // Async load cover images as blobs (avoids cross-origin img restrictions)
+  items.forEach((c,i)=>{
+    if(!c.coverUrl) return;
+    imgBlobUrl(c.coverUrl).then(burl=>{
+      const el=document.getElementById('cov-'+i);
+      if(!el) return;
+      if(burl){
+        el.innerHTML=`<img src="${burl}" alt="" style="width:100%;height:100%;object-fit:cover"><div class="cov-fade"></div>`;
+      } else {
+        el.style.display='none'; // hide placeholder if image fails
+      }
+    });
+  });
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+async function openCard(i){
+  curCard=(window._fc||cards)[i];
+  if(!curCard)return;
+  _acts=null;
+  g('mBoard').textContent=curCard.board;
+  g('mTitle').textContent=curCard.name;
+  const mc=g('mcov');
+  if(curCard.coverUrl){
+    mc.style.display='block';
+    g('mcovI').src=''; // clear first
+    imgBlobUrl(curCard.coverUrl).then(b=>{ if(b) g('mcovI').src=b; else mc.style.display='none'; });
+  } else mc.style.display='none';
+  const ab=g('abadge');
+  if(curCard.attachments.length){ab.style.display='inline';ab.textContent=curCard.attachments.length;}
+  else ab.style.display='none';
+  g('ov').classList.add('open');
+  switchTab('d');
+
+  // Load activity in background
+  trelloGet(`/cards/${curCard.id}/actions?filter=commentCard,updateCard,addAttachmentToCard,deleteAttachmentFromCard&limit=50`)
+    .then(a=>{_acts=a;if(g('tabAc').classList.contains('on'))renderAct();})
+    .catch(()=>{_acts=[];});
+}
+
+function closeM(){g('ov').classList.remove('open');}
+function closeOv(e){if(e.target===g('ov'))closeM();}
+
+function switchTab(t){
+  [['tabD','d'],['tabA','a'],['tabAc','ac']].forEach(([id,v])=>g(id).classList.toggle('on',v===t));
+  if(t==='d')renderDet();
+  else if(t==='a')renderAtt();
+  else renderAct();
+}
+
+function renderDet(){
+  if(!curCard)return;
+  const c=curCard;
+  const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)};padding:3px 10px;font-size:11px">${esc(l.name||l.color)}</span>`).join('');
+  g('mbody').innerHTML=`
+    ${lbls?`<div class="ds"><div class="dlbl"><svg width="12" height="12"><use href="#ic-tag"/></svg>${T('llbl')}</div><div class="lbls">${lbls}</div></div>`:''}
+    <div class="ds">
+      <div class="dlbl"><svg width="12" height="12"><use href="#ic-file"/></svg>${T('ldsc')}</div>
+      <div class="dval" style="color:${c.desc?'var(--text)':'var(--muted)'}">${c.desc?esc(c.desc):T('nod')}</div>
+    </div>
+    <div class="mfoot">
+      <span class="mdate"><svg width="13" height="13"><use href="#ic-cal"/></svg>${T('lact')}: ${fmtDT(c.dateLastActivity)}</span>
+      <a href="${esc(c.url)}" target="_blank" class="otl"><svg width="12" height="12"><use href="#ic-ext"/></svg>${T('otr')}</a>
+    </div>`;
+}
+
+function renderAtt(){
+  if(!curCard)return;
+  const at=curCard.attachments;
+  if(!at.length){g('mbody').innerHTML=`<div style="text-align:center;padding:40px 0;color:var(--muted)"><svg width="28" height="28" style="color:var(--border)"><use href="#ic-clip"/></svg><p style="margin-top:10px;font-size:13px">${T('noat')}</p></div>`;return;}
+  const imgAtts = at.filter(a=>isImg(a.name)||(a.mimeType||'').startsWith('image/'));
+  g('mbody').innerHTML=at.map(a=>{
+    const im=isImg(a.name)||(a.mimeType||'').startsWith('image/');
+    // Use a mid-size preview for thumbnail display if available
+    const prevs=a.previews||[];
+    const thumb=prevs.filter(p=>p.width>=400).sort((x,y)=>x.width-y.width)[0]||prevs.sort((x,y)=>y.width-x.width)[0];
+    const thumbUrl=thumb?thumb.url:a.url; // raw URL, proxy adds auth
+    const pid='aprev-'+(a.id||('x'+Math.random().toString(36).slice(2)));
+    const pv=im&&thumbUrl?`<div class="att-prev" id="${pid}"><div style="width:100%;height:100%;background:var(--s3);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" style="color:var(--border)"><use href="#ic-img"/></svg></div></div>`:'';
+    const sz=a.bytes?`<div class="att-sz">${(a.bytes/1024).toFixed(1)} KB</div>`:'';
+    return`<div class="att">${pv}<div class="att-row">
+      <div class="att-ico" style="background:${im?'rgba(167,139,250,.1)':'var(--s3)'}">
+        <svg width="16" height="16" style="color:${im?'var(--purple)':'var(--muted)'}"><use href="${im?'#ic-img':'#ic-file'}"/></svg>
+      </div>
+      <div style="flex:1;min-width:0"><div class="att-name">${esc(a.name)}</div>${sz}</div>
+      ${a.url?`<a class="dl-a" href="${esc(a.url)}" target="_blank" download="${esc(a.name)}"><svg width="13" height="13"><use href="#ic-dl"/></svg>${T('dl')}</a>`:''}
+    </div></div>`;
+  }).join('');
+
+  // Async load attachment thumbnails as blobs
+  at.forEach(a=>{
+    const im=isImg(a.name)||(a.mimeType||'').startsWith('image/');
+    if(!im) return;
+    const prevs=a.previews||[];
+    const thumb=prevs.filter(p=>p.width>=400).sort((x,y)=>x.width-y.width)[0]||prevs.sort((x,y)=>y.width-x.width)[0];
+    const thumbUrl=thumb?thumb.url:a.url;
+    const pid='aprev-'+(a.id||'');
+    const el=document.getElementById(pid);
+    if(!el||!thumbUrl) return;
+    imgBlobUrl(thumbUrl).then(b=>{
+      if(b) el.innerHTML=`<img src="${b}" style="width:100%;height:100%;object-fit:cover">`;
+      else el.style.display='none';
+    });
+  });
+}
+
+function renderAct(){
+  const b=g('mbody');
+  if(_acts===null){
+    b.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;color:var(--muted)"><div class="spin"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div><span style="font-size:13px">${T('ldact')}</span></div>`;
+    return;
+  }
+  if(!_acts.length){b.innerHTML=`<div style="text-align:center;padding:40px 0;color:var(--muted)"><svg width="28" height="28" style="color:var(--border)"><use href="#ic-act"/></svg><p style="margin-top:10px;font-size:13px">${T('noa')}</p></div>`;return;}
+  b.innerHTML=`<div>${_acts.map(a=>`
+    <div class="aitem">
+      <div class="aav"><svg width="13" height="13" style="color:var(--muted)"><use href="${a.type==='commentCard'?'#ic-user':'#ic-act'}"/></svg></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span class="aname">${esc(a.memberCreator?.fullName||'–')}</span>
+          <span style="color:var(--muted);font-size:11px">·</span>
+          <span class="atime">${fmtDT(a.date)}</span>
+        </div>
+        ${a.type==='commentCard'?`<div class="acmt">${esc(a.data?.text||'')}</div>`:`<div class="aact">${esc(a.data?.text||a.type.replace(/([A-Z])/g,' $1').toLowerCase())}</div>`}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+// Init
+applyLang();
+</script>
+</body>
+</html>
