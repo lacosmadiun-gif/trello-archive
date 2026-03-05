@@ -391,36 +391,16 @@ async function trelloGet(path) {
   return res.json();
 }
 
-// Load Trello image sebagai blob URL
-// Trello attachment download URLs ada di trello.com (no CORS)
-// Preview URLs juga di trello.com — kita rewrite ke api.trello.com yang allow CORS
-const _imgCache = new Map();
-function toApiUrl(rawUrl) {
+// Buat URL gambar Trello dengan auth params — img tag tidak kena CORS
+function imgUrl(rawUrl) {
   if (!rawUrl) return null;
-  // Rewrite trello.com → api.trello.com (CORS diizinkan)
-  let url = rawUrl.replace(/^https?:\/\/trello\.com\//, 'https://api.trello.com/');
-  // Strip existing auth params lalu tambah ulang
-  url = url.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
   const key = g('apiKey').value.trim();
   const tok = g('apiToken').value.trim();
-  url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
-  return url;
+  let url = rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+  return url + (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
 }
-async function imgBlobUrl(rawUrl) {
-  if (!rawUrl) return null;
-  if (_imgCache.has(rawUrl)) return _imgCache.get(rawUrl);
-  const url = toApiUrl(rawUrl);
-  if (!url) return null;
-  try {
-    const res = await fetch(url, { credentials: 'omit' });
-    if (!res.ok) { _imgCache.set(rawUrl, null); return null; }
-    const blob = await res.blob();
-    if (!blob.type.startsWith('image/') || blob.size < 200) { _imgCache.set(rawUrl, null); return null; }
-    const burl = URL.createObjectURL(blob);
-    _imgCache.set(rawUrl, burl);
-    return burl;
-  } catch(e) { _imgCache.set(rawUrl, null); return null; }
-}
+// imgBlobUrl alias — sama tapi return Promise supaya kode lama tetap jalan
+function imgBlobUrl(rawUrl) { return Promise.resolve(imgUrl(rawUrl)); }
 
 
 // ── i18n ──────────────────────────────────────────────────────────────────
@@ -685,7 +665,8 @@ function renderCards(items,q=''){
   const html=items.map((c,i)=>{
     const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
     // Cover: render placeholder div, load blob async after render
-    const cov=c.coverUrl?`<div class="cov" id="cov-${i}"><div style="width:100%;height:100%;background:var(--s3);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" style="color:var(--border)"><use href="#ic-img"/></svg></div><div class="cov-fade"></div></div>`:'';
+    const covSrc=c.coverUrl?imgUrl(c.coverUrl):null;
+    const cov=covSrc?`<div class="cov" id="cov-${i}"><img src="${covSrc}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"><div class="cov-fade"></div></div>`:'';
     const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
     const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''
     }${c.imageAttachments.length?`<span class="mi pu"><svg width="12" height="12" style="color:var(--purple)"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}</div>`;
@@ -700,18 +681,13 @@ function renderCards(items,q=''){
   }).join('');
   area.innerHTML=hdr+`<div class="grid">${html}</div>`;
 
-  // Async load cover images as blobs (avoids cross-origin img restrictions)
+  // Set cover images langsung — img tag tidak kena CORS restriction
   items.forEach((c,i)=>{
     if(!c.coverUrl) return;
-    imgBlobUrl(c.coverUrl).then(burl=>{
-      const el=document.getElementById('cov-'+i);
-      if(!el) return;
-      if(burl){
-        el.innerHTML=`<img src="${burl}" alt="" style="width:100%;height:100%;object-fit:cover"><div class="cov-fade"></div>`;
-      } else {
-        el.style.display='none'; // hide placeholder if image fails
-      }
-    });
+    const el=document.getElementById('cov-'+i);
+    if(!el) return;
+    const src=imgUrl(c.coverUrl);
+    if(src) el.innerHTML=`<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"><div class="cov-fade"></div>`;
   });
 }
 
@@ -725,8 +701,9 @@ async function openCard(i){
   const mc=g('mcov');
   if(curCard.coverUrl){
     mc.style.display='block';
-    g('mcovI').src=''; // clear first
-    imgBlobUrl(curCard.coverUrl).then(b=>{ if(b) g('mcovI').src=b; else mc.style.display='none'; });
+    const msrc=imgUrl(curCard.coverUrl);
+    if(msrc){ g('mcovI').src=msrc; g('mcovI').onerror=()=>mc.style.display='none'; }
+    else mc.style.display='none';
   } else mc.style.display='none';
   const ab=g('abadge');
   if(curCard.attachments.length){ab.style.display='inline';ab.textContent=curCard.attachments.length;}
@@ -778,7 +755,8 @@ function renderAtt(){
     const thumb=prevs.filter(p=>p.width>=400).sort((x,y)=>x.width-y.width)[0]||prevs.sort((x,y)=>y.width-x.width)[0];
     const thumbUrl=thumb?thumb.url:a.url; // raw URL, proxy adds auth
     const pid='aprev-'+(a.id||('x'+Math.random().toString(36).slice(2)));
-    const pv=im&&thumbUrl?`<div class="att-prev" id="${pid}"><div style="width:100%;height:100%;background:var(--s3);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" style="color:var(--border)"><use href="#ic-img"/></svg></div></div>`:'';
+    const thumbSrc=im&&thumbUrl?imgUrl(thumbUrl):null;
+    const pv=thumbSrc?`<div class="att-prev" id="${pid}"><img src="${thumbSrc}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>`:'';
     const sz=a.bytes?`<div class="att-sz">${(a.bytes/1024).toFixed(1)} KB</div>`:'';
     return`<div class="att">${pv}<div class="att-row">
       <div class="att-ico" style="background:${im?'rgba(167,139,250,.1)':'var(--s3)'}">
@@ -789,7 +767,7 @@ function renderAtt(){
     </div></div>`;
   }).join('');
 
-  // Async load attachment thumbnails as blobs
+  // Set attachment thumbnails langsung — img tag tidak kena CORS
   at.forEach(a=>{
     const im=isImg(a.name)||(a.mimeType||'').startsWith('image/');
     if(!im) return;
@@ -799,10 +777,9 @@ function renderAtt(){
     const pid='aprev-'+(a.id||'');
     const el=document.getElementById(pid);
     if(!el||!thumbUrl) return;
-    imgBlobUrl(thumbUrl).then(b=>{
-      if(b) el.innerHTML=`<img src="${b}" style="width:100%;height:100%;object-fit:cover">`;
-      else el.style.display='none';
-    });
+    const src=imgUrl(thumbUrl);
+    if(src){ el.innerHTML=`<img src="${src}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'">`; }
+    else el.style.display='none';
   });
 }
 
