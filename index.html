@@ -316,7 +316,7 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
     <div class="sbar">
       <div class="sw">
         <svg width="15" height="15"><use href="#ic-search"/></svg>
-        <input type="text" id="qi" oninput="doFilter()" placeholder="Cari nama kartu, deskripsi, label..."/>
+        <input type="text" id="qi" oninput="debouncedFilter()" placeholder="Cari nama kartu, deskripsi, label..."/>
       </div>
       <button class="btn btn-g btn-sm" onclick="load()" title="Refresh"><svg width="14" height="14"><use href="#ic-refresh"/></svg></button>
       <button class="btn btn-r btn-sm" onclick="resetF()">
@@ -542,6 +542,7 @@ function rebuildMonths(){
 // ── Load ──────────────────────────────────────────────────────────────────
 async function load(){
   const key=g('apiKey').value.trim(),tok=g('apiToken').value.trim();
+  if(key&&tok){localStorage.setItem('tkey',key);localStorage.setItem('ttok',tok);}
   if(!key||!tok){toast(lang==='id'?'Masukkan API Key dan Token!':'Enter API Key and Token!','err');return;}
 
   g('loadBtn').disabled=true;
@@ -617,6 +618,9 @@ async function load(){
     g('saN').textContent=cards.filter(c=>c.attachments.length>0).length;
     g('statsRow').style.display='grid';
     g('fbox').style.display='block';
+    // Sembunyikan auth box, tampilkan sign out
+    g('authBox').style.display='none';
+    g('signOutBtn').style.display='block';
 
     const msg=lang==='id'?`${cards.length} kartu arsip dimuat dari ${bl.length} board.`:`${cards.length} archived cards from ${bl.length} boards.`;
     setS('ok',msg);toast(msg,'ok');
@@ -638,12 +642,38 @@ function togChip(t){
   else{fA=!fA;g('chA').className='chip'+(fA?' on':'');}
   doFilter();
 }
+function signOut(){
+  cards=[];
+  g('authBox').style.display='block';
+  g('signOutBtn').style.display='none';
+  g('statsRow').style.display='none';
+  g('fbox').style.display='none';
+  g('res').innerHTML='';
+  g('apiKey').value='';
+  g('apiToken').value='';
+  g('sdot').className='sdot idle';
+  g('stxt').textContent=T('sdef');
+  g('cname').style.display='none';
+  g('cpill').style.display='none';
+  localStorage.removeItem('tkey');
+  localStorage.removeItem('ttok');
+  toast('Signed out','ok');
+}
+
 function resetF(){
   g('qi').value='';g('bfil').value='';g('fd').value='';
   g('fm').value='';g('fy').value='';g('ss').value='date';
   fI=false;fA=false;g('chI').className='chip';g('chA').className='chip';
   doFilter();
 }
+// Debounce search — tunggu 300ms setelah user berhenti ketik
+let _dft = null;
+function debouncedFilter(){ clearTimeout(_dft); _dft = setTimeout(doFilter, 300); }
+
+// Pagination
+const PAGE_SIZE = 50;
+let _page = 1;
+
 function doFilter(){
   const q=g('qi').value.toLowerCase().trim();
   const bF=g('bfil').value;
@@ -673,51 +703,48 @@ function doFilter(){
     return 0;
   });
   window._fc=r;
+  _page=1;
   renderCards(r,q);
 }
 
 // ── Render ────────────────────────────────────────────────────────────────
+function renderCard(c,i,q){
+  const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
+  const COVER_PAL = {green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
+  let cov = '';
+  if(c.hasCover){
+    const bg = c.coverColor ? (COVER_PAL[c.coverColor]||c.coverColor) : 'var(--s3)';
+    if(c.coverUrl){
+      cov = `<div class="cov" style="background:${bg}"><img src="${c.coverUrl}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"><div class="cov-fade"></div></div>`;
+    } else {
+      const txtCol = (c.coverBright==='light') ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.15)';
+      cov = `<div class="cov" style="background:${bg};display:flex;align-items:center;justify-content:center"><svg width="28" height="28" style="color:${txtCol}"><use href="#ic-img"/></svg><div class="cov-fade"></div></div>`;
+    }
+  }
+  const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
+  const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''}${c.imageAttachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>${fmt(c.dateLastActivity)}</span></div>`;
+  return `<div class="ac" onclick="openCard(${i})"><span class="bpill">${esc(c.board)}</span>${cov}<div class="ac-body"><div class="lrow">${lbls}</div><div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
+}
+
 function renderCards(items,q=''){
   const area=g('res');
   if(!items.length){
     area.innerHTML=`<div class="empty"><div class="ei"><svg width="22" height="22" style="color:var(--muted)"><use href="#ic-search"/></svg></div><h3>${T('nor')}</h3><p>${T('nord')}</p></div>`;
     return;
   }
-  const hdr=`<div class="rh"><span class="rc">${T('shw')} <b>${items.length}</b> ${T('of')} ${cards.length} ${T('cl')}</span></div>`;
-  const html=items.map((c,i)=>{
-    const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
-    const COVER_PAL = {green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
-    let cov = '';
-    if(c.hasCover){
-      const bg = c.coverColor ? (COVER_PAL[c.coverColor]||c.coverColor) : 'var(--s3)';
-      if(c.coverUrl){
-        // Gambar cover — img src langsung, browser kirim cookie Trello otomatis
-        cov = `<div class="cov" style="background:${bg}">` +
-              `<img src="${c.coverUrl}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">` +
-              `<div class="cov-fade"></div></div>`;
-      } else {
-        const txtCol = (c.coverBright==='light') ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.15)';
-        cov = `<div class="cov" style="background:${bg};display:flex;align-items:center;justify-content:center">` +
-              `<svg width="28" height="28" style="color:${txtCol}"><use href="#ic-img"/></svg>` +
-              `<div class="cov-fade"></div></div>`;
-      }
-    }
-    const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
-    const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''
-    }${c.imageAttachments.length?`<span class="mi pu"><svg width="12" height="12" style="color:var(--purple)"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}</div>`;
-    return`<div class="ac" onclick="openCard(${i})">${cov}
-      <div class="acb">
-        <div class="btag"><svg width="10" height="10"><use href="#ic-board"/></svg>${hl(c.board,q)}</div>
-        <div class="acn">${hl(c.name,q)}</div>
-        ${dsc}${lbls?`<div class="lbls">${lbls}</div>`:''}
-        <div class="acf">${mt}<span class="dtag"><svg width="11" height="11"><use href="#ic-cal"/></svg>${fmtD(c.dateLastActivity)}</span></div>
-      </div>
-    </div>`;
-  }).join('');
-  area.innerHTML=hdr+`<div class="grid">${html}</div>`;
-
-
+  const slice = items.slice(0, _page * PAGE_SIZE);
+  const hdr=`<div class="rh"><span class="rc">${T('shw')} <b>${slice.length}</b> ${T('of')} ${items.length} ${T('cl')}</span></div>`;
+  const html = slice.map((c,i) => renderCard(c,i,q)).join('');
+  area.innerHTML = hdr + `<div class="grid">${html}</div>` +
+    (items.length > slice.length ? `<div id="loadMore" style="text-align:center;padding:24px"><button class="btn btn-g" onclick="loadMore()">Muat ${Math.min(PAGE_SIZE, items.length-slice.length)} kartu lagi</button></div>` : '');
 }
+
+function loadMore(){
+  _page++;
+  renderCards(window._fc, g('qi').value.toLowerCase().trim());
+  document.getElementById('loadMore')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
 
 // ── Modal ─────────────────────────────────────────────────────────────────
 async function openCard(i){
@@ -825,6 +852,10 @@ function renderAct(){
 
 // Init
 applyLang();
+// Load saved key+token
+const _sk=localStorage.getItem('tkey'), _st=localStorage.getItem('ttok');
+if(_sk&&g('apiKey')) g('apiKey').value=_sk;
+if(_st&&g('apiToken')) g('apiToken').value=_st;
 // Load saved proxy URL
 const _saved = localStorage.getItem('tproxy');
 if (_saved && g('proxyUrl')) g('proxyUrl').value = _saved;
