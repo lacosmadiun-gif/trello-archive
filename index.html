@@ -278,7 +278,7 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
       <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
         Cloudflare Proxy URL <span style="color:var(--green);font-size:10px">(untuk load gambar)</span>
       </label>
-      <input type="text" id="proxyUrl" placeholder="https://trello-archive.lacosmadiun.workers.dev"
+      <input type="text" id="proxyUrl" placeholder="https://nama-worker.namakamu.workers.dev"
         style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
         oninput="localStorage.setItem('tproxy',this.value)"
       />
@@ -587,7 +587,17 @@ async function load(){
           const coverBright = c.cover&&c.cover.brightness ? c.cover.brightness : 'dark';
           // Jika ada gambar attachment tapi tidak ada cover color, pakai warna default
           const hasCover = coverColor || imgs.length > 0;
-          const coverUrl = null; // tidak load gambar
+          // Ambil URL cover dari attachment preview atau cover.scaled
+          let coverUrl = null;
+          if (imgs.length) {
+            const prev = imgs[0].previews || [];
+            const thumb = prev.filter(p=>p.width>=300&&p.width<=900).sort((a,b)=>a.width-b.width)[0]
+                        || prev.sort((a,b)=>b.width-a.width)[0];
+            coverUrl = thumb ? thumb.url : imgs[0].url;
+          } else if (c.cover && c.cover.scaled && c.cover.scaled.length) {
+            const sc = [...c.cover.scaled].sort((a,b)=>a.width-b.width).filter(s=>s.width>=300);
+            coverUrl = (sc[0] || c.cover.scaled[0]).url;
+          }
           cards.push({...c,board:b.name,boardId:b.id,boardUrl:b.url,
             attachments:atts,imageAttachments:imgs,
             coverUrl,coverColor,coverBright,hasCover});
