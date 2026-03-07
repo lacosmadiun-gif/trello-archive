@@ -700,6 +700,7 @@ function renderCards(items,q=''){
         cov = `<div class="cov" style="background:${bg};display:flex;align-items:center;justify-content:center">` +
               `<svg width="28" height="28" style="color:${txtCol}"><use href="#ic-img"/></svg>` +
               `<div class="cov-fade"></div></div>`;
+      }
     }
     const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
     const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''
