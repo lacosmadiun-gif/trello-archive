@@ -411,17 +411,9 @@ function getProxyUrl() {
 
 function imgUrl(rawUrl) {
   if (!rawUrl) return null;
-  // Preview/CDN URL (trello-attachments, amazonaws, trellocdn) — tidak perlu auth, langsung pakai
-  if (/trello-attachments|amazonaws|trellocdn/.test(rawUrl)) return rawUrl;
-  // URL lain — tambah key+token dan routing lewat proxy kalau ada
-  const key = g('apiKey').value.trim();
-  const tok = g('apiToken').value.trim();
-  if (!key || !tok) return null;
-  let url = rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
-  url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
-  const proxy = getProxyUrl();
-  if (proxy) return proxy + '?url=' + encodeURIComponent(url);
-  return url;
+  // Pakai URL langsung — browser kirim session cookie Trello otomatis
+  // Ini cara yang sama seperti Trello web app sendiri
+  return rawUrl;
 }
 function imgBlobUrl(rawUrl) { return Promise.resolve(imgUrl(rawUrl)); }
 
