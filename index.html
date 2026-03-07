@@ -274,6 +274,15 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
         <span id="loadTxt">Muat Arsip</span>
       </button>
     </div>
+    <div class="fld" style="margin-top:12px">
+      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
+        Cloudflare Proxy URL <span style="color:var(--green);font-size:10px">(untuk load gambar)</span>
+      </label>
+      <input type="text" id="proxyUrl" placeholder="https://trello-archive.lacosmadiun.workers.dev"
+        style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
+        oninput="localStorage.setItem('tproxy',this.value)"
+      />
+    </div>
     <div class="srow">
       <div class="sdot idle" id="sdot"></div>
       <span id="stxt">Masukkan API Key dan Token Trello Anda.</span>
@@ -395,18 +404,20 @@ async function trelloGet(path) {
 // <img> tag tidak kena CORS, session cookie otomatis dikirim
 // Cover gambar Trello tidak bisa diload cross-origin (tidak ada CORS header)
 // Kita gunakan cover COLOR dari Trello API sebagai visual cover kartu
-// ── Konfigurasi Proxy ─────────────────────────────────────────────────
-// Isi URL Cloudflare Worker kamu setelah deploy:
-// Contoh: 'https://trello-proxy.namakamu.workers.dev'
-const PROXY_URL = 'https://trello-archive.lacosmadiun.workers.dev';  // ← ganti ini
+function getProxyUrl() {
+  const el = g('proxyUrl');
+  return el ? el.value.trim().replace(/\/$/, '') : '';
+}
 
 function imgUrl(rawUrl) {
   if (!rawUrl) return null;
   const key = g('apiKey').value.trim();
   const tok = g('apiToken').value.trim();
+  if (!key || !tok) return null;
   let url = rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
   url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
-  if (PROXY_URL) return PROXY_URL + '?url=' + encodeURIComponent(url);
+  const proxy = getProxyUrl();
+  if (proxy) return proxy + '?url=' + encodeURIComponent(url);
   return url;
 }
 function imgBlobUrl(rawUrl) { return Promise.resolve(imgUrl(rawUrl)); }
@@ -799,6 +810,9 @@ function renderAct(){
 
 // Init
 applyLang();
+// Load saved proxy URL
+const _saved = localStorage.getItem('tproxy');
+if (_saved && g('proxyUrl')) g('proxyUrl').value = _saved;
 </script>
 </body>
 </html>
