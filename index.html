@@ -711,21 +711,21 @@ function doFilter(){
 // ── Render ────────────────────────────────────────────────────────────────
 function renderCard(c,i,q){
   const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
-  const COVER_PAL = {green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
-  let cov = '';
+  const COVER_PAL={green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
+  let cov='';
   if(c.hasCover){
-    const bg = c.coverColor ? (COVER_PAL[c.coverColor]||c.coverColor) : 'var(--s3)';
+    const bg=c.coverColor?(COVER_PAL[c.coverColor]||c.coverColor):'var(--s3)';
     if(c.coverUrl){
-      cov = `<div class="cov" style="background:${bg}"><img src="${c.coverUrl}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"><div class="cov-fade"></div></div>`;
+      cov=`<div class="cov"><img src="${c.coverUrl}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.display='none'"></div>`;
     } else {
-      const txtCol = (c.coverBright==='light') ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.15)';
-      cov = `<div class="cov" style="background:${bg};display:flex;align-items:center;justify-content:center"><svg width="28" height="28" style="color:${txtCol}"><use href="#ic-img"/></svg><div class="cov-fade"></div></div>`;
+      cov=`<div class="cov" style="background:${bg}"></div>`;
     }
   }
-  const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
+  const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,120),q)}</div>`:'';
   const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''}${c.imageAttachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>${fmtDT(c.dateLastActivity)}</span></div>`;
-  return `<div class="ac" onclick="openCard(${i})"><span class="bpill">${esc(c.board)}</span>${cov}<div class="ac-body"><div class="lrow">${lbls}</div><div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
+  return `<div class="ac" onclick="openCard(${i})">${cov}<div class="ac-body"><span class="bpill">${esc(c.board)}</span><div class="lrow">${lbls}</div><div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
 }
+
 
 function renderCards(items,q=''){
   const area=g('res');
