@@ -686,16 +686,20 @@ function renderCards(items,q=''){
   const hdr=`<div class="rh"><span class="rc">${T('shw')} <b>${items.length}</b> ${T('of')} ${cards.length} ${T('cl')}</span></div>`;
   const html=items.map((c,i)=>{
     const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
-    // Cover: render placeholder div, load blob async after render
-    // Color cover — pakai warna dari Trello, tidak perlu load gambar
     const COVER_PAL = {green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
     let cov = '';
     if(c.hasCover){
       const bg = c.coverColor ? (COVER_PAL[c.coverColor]||c.coverColor) : 'var(--s3)';
-      const txtCol = (c.coverBright==='light') ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.15)';
-      cov = `<div class="cov" style="background:${bg};display:flex;align-items:center;justify-content:center">` +
-            `<svg width="28" height="28" style="color:${txtCol}"><use href="#ic-img"/></svg>` +
-            `<div class="cov-fade"></div></div>`;
+      if(c.coverUrl){
+        // Gambar cover — img src langsung, browser kirim cookie Trello otomatis
+        cov = `<div class="cov" style="background:${bg}">` +
+              `<img src="${c.coverUrl}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">` +
+              `<div class="cov-fade"></div></div>`;
+      } else {
+        const txtCol = (c.coverBright==='light') ? 'rgba(0,0,0,.4)' : 'rgba(255,255,255,.15)';
+        cov = `<div class="cov" style="background:${bg};display:flex;align-items:center;justify-content:center">` +
+              `<svg width="28" height="28" style="color:${txtCol}"><use href="#ic-img"/></svg>` +
+              `<div class="cov-fade"></div></div>`;
     }
     const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,130),q)}</div>`:'';
     const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''
