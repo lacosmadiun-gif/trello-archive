@@ -411,6 +411,9 @@ function getProxyUrl() {
 
 function imgUrl(rawUrl) {
   if (!rawUrl) return null;
+  // Preview/CDN URL (trello-attachments, amazonaws, trellocdn) — tidak perlu auth, langsung pakai
+  if (/trello-attachments|amazonaws|trellocdn/.test(rawUrl)) return rawUrl;
+  // URL lain — tambah key+token dan routing lewat proxy kalau ada
   const key = g('apiKey').value.trim();
   const tok = g('apiToken').value.trim();
   if (!key || !tok) return null;
@@ -587,15 +590,20 @@ async function load(){
           const coverBright = c.cover&&c.cover.brightness ? c.cover.brightness : 'dark';
           // Jika ada gambar attachment tapi tidak ada cover color, pakai warna default
           const hasCover = coverColor || imgs.length > 0;
-          // Ambil URL cover dari attachment preview atau cover.scaled
+          // Hanya pakai preview URL — preview di-host di CDN publik (tidak perlu auth)
+          // Download URL (/download/...) selalu 401 walau pakai key+token
           let coverUrl = null;
           if (imgs.length) {
-            const prev = imgs[0].previews || [];
-            const thumb = prev.filter(p=>p.width>=300&&p.width<=900).sort((a,b)=>a.width-b.width)[0]
-                        || prev.sort((a,b)=>b.width-a.width)[0];
-            coverUrl = thumb ? thumb.url : imgs[0].url;
-          } else if (c.cover && c.cover.scaled && c.cover.scaled.length) {
-            const sc = [...c.cover.scaled].sort((a,b)=>a.width-b.width).filter(s=>s.width>=300);
+            // Cari preview dari semua image attachment, bukan cuma yang pertama
+            for (const img of imgs) {
+              const prev = img.previews || [];
+              const thumb = prev.filter(p=>p.width>=200).sort((a,b)=>a.width-b.width)[0];
+              if (thumb) { coverUrl = thumb.url; break; }
+            }
+          }
+          // Fallback: cover.scaled dari Trello (juga CDN publik)
+          if (!coverUrl && c.cover && c.cover.scaled && c.cover.scaled.length) {
+            const sc = [...c.cover.scaled].sort((a,b)=>a.width-b.width).filter(s=>s.width>=200);
             coverUrl = (sc[0] || c.cover.scaled[0]).url;
           }
           cards.push({...c,board:b.name,boardId:b.id,boardUrl:b.url,
