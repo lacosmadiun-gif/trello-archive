@@ -99,9 +99,9 @@ select:focus,.nip:focus{border-color:var(--accent)}
 /* ─ Archive card ─ */
 .ac{background:var(--s1);border:1px solid var(--border);border-radius:13px;overflow:hidden;cursor:pointer;transition:all .2s}
 .ac:hover{border-color:var(--accent);background:var(--s2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.1)}
-.cov{height:100px;overflow:hidden;position:relative;border-radius:0}
+.cov{display:none}
 .cov-fade{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(7,10,16,.75))}
-.ac-body{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.ac-body{padding:12px 14px;display:flex;flex-direction:column;gap:5px}
 .bpill{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .act{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
 .lrow{display:flex;flex-wrap:wrap;gap:4px;min-height:0}
@@ -714,20 +714,11 @@ function doFilter(){
 
 // ── Render ────────────────────────────────────────────────────────────────
 function renderCard(c,i,q){
-  const COVER_PAL={green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
-  let cov='';
-  if(c.hasCover){
-    const bg=c.coverColor?(COVER_PAL[c.coverColor]||c.coverColor):'var(--s3)';
-    cov=c.coverUrl
-      ?`<div class="cov"><img src="${c.coverUrl}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.style.background='${bg}';this.remove()"></div>`
-      :`<div class="cov" style="background:${bg}"></div>`;
-  }
   const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
   const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,120),q)}</div>`:'';
   const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''}${c.imageAttachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>${fmtDT(c.dateLastActivity)}</span></div>`;
-  return `<div class="ac" onclick="openCard(${i})">${cov}<div class="ac-body"><div class="bpill">${esc(c.board)}</div>${lbls?`<div class="lrow">${lbls}</div>`:''}<div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
+  return `<div class="ac" onclick="openCard(${i})"><div class="ac-body"><div class="bpill">${esc(c.board)}</div>${lbls?`<div class="lrow">${lbls}</div>`:''}<div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
 }
-
 
 function renderCards(items,q=''){
   const area=g('res');
@@ -809,18 +800,27 @@ function renderAtt(){
   if(!curCard)return;
   const at=curCard.attachments;
   if(!at.length){g('mbody').innerHTML=`<div style="text-align:center;padding:40px 0;color:var(--muted)"><svg width="28" height="28" style="color:var(--border)"><use href="#ic-clip"/></svg><p style="margin-top:10px;font-size:13px">${T('noat')}</p></div>`;return;}
+  const proxy=getProxyUrl();
+  const key=g('apiKey').value.trim(), tok=g('apiToken').value.trim();
   g('mbody').innerHTML=at.map(a=>{
     const im=isImg(a.name)||(a.mimeType||'').startsWith('image/');
     const prevs=a.previews||[];
     const thumb=prevs.filter(p=>p.width>=400).sort((x,y)=>x.width-y.width)[0]||prevs.sort((x,y)=>y.width-x.width)[0];
-    const thumbUrl=im?(thumb?thumb.url:a.url):null;
+    const rawUrl=im?(thumb?thumb.url:a.url):null;
+    // Build proxied URL kalau proxy tersedia
+    function proxyUrl(u){
+      if(!u) return null;
+      let url=u.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+      url+=(url.includes('?')?'&':'?')+'key='+encodeURIComponent(key)+'&token='+encodeURIComponent(tok);
+      return proxy?proxy+'?url='+encodeURIComponent(url):null;
+    }
+    const imgSrc=rawUrl?proxyUrl(rawUrl):null;
     const sz=a.bytes?`<div class="att-sz">${(a.bytes/1024).toFixed(1)} KB</div>`:'';
-    // Kalau image — tampil preview, klik buka lightbox
-    const pv=thumbUrl
-      ?`<div class="att-prev" style="cursor:zoom-in" onclick="lightbox('${esc(thumbUrl)}','${esc(a.name)}')">
-          <img src="${thumbUrl}" alt="${esc(a.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'">
+    const pv=imgSrc
+      ?`<div class="att-prev" style="cursor:zoom-in" onclick="lightbox('${imgSrc.replace(/'/g,"\'")}','${esc(a.name)}')">
+          <img src="${imgSrc}" alt="${esc(a.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'">
         </div>`
-      :'';
+      :(im?`<div class="att-prev" style="display:flex;align-items:center;justify-content:center;background:var(--s2);color:var(--muted);font-size:11px">Login Trello untuk preview</div>`:'');
     return`<div class="att">${pv}<div class="att-row">
       <div class="att-ico" style="background:${im?'rgba(167,139,250,.1)':'var(--s3)'}">
         <svg width="16" height="16" style="color:${im?'var(--purple)':'var(--muted)'}"><use href="${im?'#ic-img':'#ic-file'}"/></svg>
