@@ -100,7 +100,7 @@ select:focus,.nip:focus{border-color:var(--accent)}
 .ac{background:var(--s1);border:1px solid var(--border);border-radius:13px;overflow:hidden;cursor:pointer;transition:all .2s}
 .ac.focused{border-color:var(--accent);background:var(--s2)}
 .ac:hover{border-color:var(--accent);background:var(--s2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.1)}
-.cov{display:none}
+.cov{height:100px;overflow:hidden;position:relative}
 .cov-fade{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(7,10,16,.75))}
 .ac-body{padding:12px 14px;display:flex;flex-direction:column;gap:5px}
 .bpill{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -319,25 +319,30 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
       </button>
     </div>
 
-    <div class="fld" style="margin-top:12px">
-      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
-        Cloudflare Proxy URL
-      </label>
-      <input type="text" id="proxyUrl" placeholder="https://trello-img-proxy.lacosmadiun.workers.dev"
-        style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
-        oninput="localStorage.setItem('tproxy',this.value)"
-      />
-    </div>
-    <div class="fld" style="margin-top:8px">
-      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
-        Trello Session Cookie <span style="color:var(--muted);font-size:10px">(Application → Cookies → cloud.session.token)</span>
-      </label>
-      <div class="inp-wrap">
-        <input type="password" id="sessionToken" placeholder="eyJraWQiOiJzZXNzaW9uLXNlcnZpY2UvcHJvZC0xNzM4Nzk0ODc0IiwiYWxnIjoiUlMyNTYifQ.eyJhc3NvY2lhdGlvbnMiOltdLCJzdWIiOiI2MjBiMWY4Y2VmMmJkNTAwNmFlOGIxODQiLCJlbWFpbERvbWFpbiI6ImdtYWlsLmNvbSIsImltcGVyc29uYXRpb24iOltdLCJjcmVhdGVkIjoxNzY4MjAxMTIxLCJyZWZyZXNoVGltZW91dCI6MTc3MzIxNzk3NSwidmVyaWZpZWQiOnRydWUsImlzcyI6InNlc3Npb24tc2VydmljZSIsImRvbWFpbnMiOlsidHJlbGxvLmNvbSJdLCJzZXNzaW9uSWQiOiIwOGJiYzA2Yy0xNTVhLTRlM2YtYTA1Yi01ODliZTRmN2FjMWYiLCJzdGVwVXBzIjpbXSwiYXVkIjoiaWRlbnRpdHkiLCJuYmYiOjE3NzMyMTczNzUsImV4cCI6MTc3NTgwOTM3NSwiaWF0IjoxNzczMjE3Mzc1LCJlbWFpbCI6ImxhY29zbWFkaXVuQGdtYWlsLmNvbSIsImp0aSI6IjA4YmJjMDZjLTE1NWEtNGUzZi1hMDViLTU4OWJlNGY3YWMxZiJ9.lvFkp4iutIQvMJvBNw07tuV1YZYNDQBGFGY4gRqQn3Xtb47ssM2aVgpbGK58yslTYylxw9zw2zNQh1wAoORMqWm8oYowpz83VFJ-aJQYVpjQwxzHcOF90DVvitkr5a6kq2PhLm_bJ-rrDIrhmPe2w7ZBIg71htA19pXw7o2kMLTudl8QDWOOfKDqOCqzLXqPw9iCCYiYg0KCP5SPi3T-IBK-MxaIlR1cN2Q1qtmGTH3HdBh1_owOFt7FO2ZHtP0KTsYYMJl_C-HDh0nBBtTh348p2peJAibPS6LhvwGv0SUnktqTSyESGcgx_ETZa7Nn6HkadqjRFcsBEwxznFfGTg"
-          style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
-          oninput="localStorage.setItem('tsession',this.value)"
-        />
-        <button class="eye" onclick="tv('sessionToken','eST')"><svg width="14" height="14" id="eST"><use href="#ic-eye"/></svg></button>
+    <div style="margin-top:12px">
+      <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.adv-arrow').style.transform=this.nextElementSibling.style.display==='none'?'rotate(0deg)':'rotate(90deg)';"
+        style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:6px;padding:0;text-transform:uppercase;letter-spacing:.7px">
+        <svg class="adv-arrow" width="10" height="10" style="transition:.2s;transform:rotate(0deg)"><use href="#ic-sort"/></svg>
+        Advanced (Preview Gambar)
+      </button>
+      <div style="display:none;margin-top:10px">
+        <div class="fld">
+          <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">Cloudflare Proxy URL</label>
+          <input type="text" id="proxyUrl" placeholder="https://trello-img-proxy.lacosmadiun.workers.dev"
+            style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
+            oninput="localStorage.setItem('tproxy',this.value)"/>
+        </div>
+        <div class="fld" style="margin-top:8px">
+          <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
+            Session Cookie <span style="color:var(--muted);font-size:10px">(DevTools → Application → Cookies → cloud.session.token)</span>
+          </label>
+          <div class="inp-wrap">
+            <input type="password" id="sessionToken" placeholder="eyJraWQ..."
+              style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
+              oninput="localStorage.setItem('tsession',this.value)"/>
+            <button class="eye" onclick="tv('sessionToken','eST')"><svg width="14" height="14" id="eST"><use href="#ic-eye"/></svg></button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="srow">
@@ -649,7 +654,7 @@ async function load(){
     for(const b of bl){
       setS('go',(lang==='id'?'Memuat dari: ':'Loading: ')+b.name);
       try{
-        const cs=await trelloGet(`/boards/${b.id}/cards/closed?fields=id,name,desc,url,dateLastActivity,labels,badges,cover&attachments=true&attachment_fields=id,name,url,bytes,mimeType`);
+        const cs=await trelloGet(`/boards/${b.id}/cards/closed?fields=id,name,desc,url,dateLastActivity,labels,badges,cover&attachments=true&attachment_fields=id,name,url,bytes,mimeType,previews`);
         cs.forEach(c=>{
           const key=g('apiKey').value.trim(), tok=g('apiToken').value.trim();
           const atts=(c.attachments||[]).map(a=>({...a}));
@@ -848,11 +853,42 @@ function doFilter(){
 }
 
 // ── Render single card ───────────────────────────────────────────────────
+function buildCardImgSrc(rawUrl){
+  if(!rawUrl) return null;
+  const proxy=getProxyUrl();
+  const session=getSessionToken();
+  const key=g('apiKey').value.trim();
+  const tok=g('apiToken').value.trim();
+  if(!proxy) return null; // tanpa proxy skip aja
+  let u=rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+  u+=(u.indexOf('?')>=0?'&':'?')+'key='+encodeURIComponent(key)+'&token='+encodeURIComponent(tok);
+  let p=proxy+'?url='+encodeURIComponent(u);
+  if(session) p+='&ct='+encodeURIComponent(session);
+  return p;
+}
+
 function renderCard(c,i,q){
-  const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
-  const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,120),q)}</div>`:'';
-  const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''}${c.imageAttachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>${fmtDT(c.dateLastActivity)}</span></div>`;
-  return `<div class="ac" onclick="openCard(${i})"><div class="ac-body"><div class="bpill">${esc(c.board)}</div>${lbls?`<div class="lrow">${lbls}</div>`:''}<div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
+  const COVER_PAL={green:'#61bd4f',yellow:'#f2d600',orange:'#ff9f1a',red:'#eb5a46',purple:'#c377e0',blue:'#0079bf',sky:'#00c2e0',lime:'#51e898',pink:'#ff78cb',black:'#344563'};
+  let cov='';
+  if(c.hasCover){
+    const bg=c.coverColor?(COVER_PAL[c.coverColor]||c.coverColor):'var(--s3)';
+    const imgSrc=buildCardImgSrc(c.coverUrl);
+    if(imgSrc){
+      var _ci=document.createElement('img');
+      _ci.src=imgSrc;_ci.loading='lazy';_ci.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+      _ci.onerror=function(){this.parentElement.style.display='none';};
+      var _cd=document.createElement('div');_cd.className='cov';_cd.appendChild(_ci);
+      cov=_cd.outerHTML;
+    } else if(c.coverColor){
+      cov='<div class="cov" style="background:'+bg+'"></div>';
+    }
+  }
+  const lbls=(c.labels||[]).map(l=>'<span class="lp" style="background:'+lc(l.color)+'">'+esc(l.name||l.color)+'</span>').join('');
+  const dsc=c.desc?'<div class="acd">'+hl(c.desc.slice(0,120),q)+'</div>':'';
+  const mt='<div class="mr">'+(c.attachments.length?'<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>'+c.attachments.length+'</span>':'')+(c.imageAttachments.length?'<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>'+c.imageAttachments.length+'</span>':'')+'<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>'+fmtDT(c.dateLastActivity)+'</span></div>';
+  return '<div class="ac" onclick="openCard('+i+')">'
+    +cov
+    +'<div class="ac-body"><div class="bpill">'+esc(c.board)+'</div>'+(lbls?'<div class="lrow">'+lbls+'</div>':'')+'<div class="act">'+hl(c.name,q)+'</div>'+dsc+mt+'</div></div>';
 }
 
 // ── renderCards (grid/list + infinite scroll) ─────────────────────────────
@@ -1021,38 +1057,58 @@ function renderDet(){
 
 function renderAtt(){
   if(!curCard)return;
-  const at=curCard.attachments;
-  if(!at.length){g('mbody').innerHTML=`<div style="text-align:center;padding:40px 0;color:var(--muted)"><svg width="28" height="28" style="color:var(--border)"><use href="#ic-clip"/></svg><p style="margin-top:10px;font-size:13px">${T('noat')}</p></div>`;return;}
-  const proxy=getProxyUrl();
-  const key=g('apiKey').value.trim(), tok=g('apiToken').value.trim();
-  g('mbody').innerHTML=at.map(a=>{
-    const im=isImg(a.name)||(a.mimeType||'').startsWith('image/');
-    const prevs=a.previews||[];
-    const thumb=prevs.filter(p=>p.width>=400).sort((x,y)=>x.width-y.width)[0]||prevs.sort((x,y)=>y.width-x.width)[0];
-    const rawUrl=im?(thumb?thumb.url:a.url):null;
-    // Build proxied URL kalau proxy tersedia
-    function proxyUrl(u){
-      if(!u) return null;
-      let url=u.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
-      url+=(url.includes('?')?'&':'?')+'key='+encodeURIComponent(key)+'&token='+encodeURIComponent(tok);
-      return proxy?proxy+'?url='+encodeURIComponent(url):null;
+  var at=curCard.attachments;
+  if(!at.length){g('mbody').innerHTML='<div style="text-align:center;padding:40px 0;color:var(--muted)">'+T('noat')+'</div>';return;}
+  var proxy=getProxyUrl();
+  var session=getSessionToken();
+  var key=g('apiKey').value.trim();
+  var tok=g('apiToken').value.trim();
+  function buildSrc(u){
+    if(!u) return null;
+    if(!proxy) return u;
+    var r=u.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+    r+=(r.indexOf('?')>=0?'&':'?')+'key='+encodeURIComponent(key)+'&token='+encodeURIComponent(tok);
+    var p=proxy+'?url='+encodeURIComponent(r);
+    if(session) p+='&ct='+encodeURIComponent(session);
+    return p;
+  }
+  var html='';
+  for(var i=0;i<at.length;i++){
+    var a=at[i];
+    var im=isImg(a.name)||((a.mimeType||'').indexOf('image/')===0);
+    var src=im?buildSrc(a.url):null;
+    var sz=a.bytes?'<div class="att-sz">'+(a.bytes/1024).toFixed(1)+' KB</div>':'';
+    var pv='';
+    if(src){
+      var img=document.createElement('img');
+      img.src=src; img.alt=a.name; img.loading='lazy';
+      img.style.cssText='width:100%;height:100%;object-fit:cover';
+      img.onerror=function(){this.parentElement.style.display='none';};
+      var wrap=document.createElement('div');
+      wrap.className='att-prev'; wrap.style.cursor='zoom-in';
+      var s2=src, n2=a.name;
+      wrap.onclick=(function(ss,nn){return function(){lightbox(ss,nn);};})(s2,n2);
+      wrap.appendChild(img);
+      pv=wrap.outerHTML;
     }
-    const imgSrc=rawUrl?proxyUrl(rawUrl):null;
-    const sz=a.bytes?`<div class="att-sz">${(a.bytes/1024).toFixed(1)} KB</div>`:'';
-    const pv=imgSrc
-      ?`<div class="att-prev" style="cursor:zoom-in" onclick="lightbox('${imgSrc.replace(/'/g,"\'")}','${esc(a.name)}')">
-          <img src="${imgSrc}" alt="${esc(a.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'">
-        </div>`
-      :(im?`<div class="att-prev" style="display:flex;align-items:center;justify-content:center;background:var(--s2);color:var(--muted);font-size:11px">Login Trello untuk preview</div>`:'');
-    return`<div class="att">${pv}<div class="att-row">
-      <div class="att-ico" style="background:${im?'rgba(167,139,250,.1)':'var(--s3)'}">
-        <svg width="16" height="16" style="color:${im?'var(--purple)':'var(--muted)'}"><use href="${im?'#ic-img':'#ic-file'}"/></svg>
-      </div>
-      <div style="flex:1;min-width:0"><div class="att-name">${esc(a.name)}</div>${sz}</div>
-      ${a.url?`<a class="dl-a" href="${esc(a.url)}" target="_blank" download="${esc(a.name)}"><svg width="13" height="13"><use href="#ic-dl"/></svg>${T('dl')}</a>`:''}
-    </div></div>`;
-  }).join('');
+    var dlBtn=a.url?'<a class="dl-a" href="'+esc(a.url)+'" target="_blank"><svg width="13" height="13"><use href="#ic-dl"/></svg>'+T('dl')+'</a>':'';
+    html+='<div class="att">'+pv
+      +'<div class="att-row">'
+      +'<div class="att-ico" style="background:'+(im?'rgba(167,139,250,.1)':'var(--s3)')+'"><svg width="16" height="16" style="color:'+(im?'var(--purple)':'var(--muted)')+'"><use href="'+(im?'#ic-img':'#ic-file')+'"/></svg></div>'
+      +'<div style="flex:1;min-width:0"><div class="att-name">'+esc(a.name)+'</div>'+sz+'</div>'
+      +dlBtn
+      +'</div></div>';
+  }
+  g('mbody').innerHTML=html;
+  // Re-attach onclick untuk wrap (karena outerHTML tidak bawa event)
+  var wraps=g('mbody').querySelectorAll('.att-prev');
+  var imgSrcs=at.filter(function(a){return isImg(a.name)||((a.mimeType||'').indexOf('image/')===0);}).map(function(a){return buildSrc(a.url);});
+  var imgNames=at.filter(function(a){return isImg(a.name)||((a.mimeType||'').indexOf('image/')===0);}).map(function(a){return a.name;});
+  for(var j=0;j<wraps.length;j++){
+    (function(el,ss,nn){el.onclick=function(){lightbox(ss,nn);};})(wraps[j],imgSrcs[j],imgNames[j]);
+  }
 }
+
 
 // Lightbox untuk preview gambar attachment
 function lightbox(src, name){
@@ -1133,7 +1189,12 @@ if(_sk&&g('apiKey')) g('apiKey').value=_sk;
 if(_st&&g('apiToken')) g('apiToken').value=_st;
 // Load saved proxy + session
 const _sp=localStorage.getItem('tproxy'), _ss=localStorage.getItem('tsession');
-if(_sp&&g('proxyUrl')) g('proxyUrl').value=_sp;
+if(_sp&&g('proxyUrl')){
+  g('proxyUrl').value=_sp;
+  // Auto expand advanced section
+  const advDiv=g('proxyUrl').closest('div[style*="display:none"]');
+  if(advDiv){ advDiv.style.display='block'; const arr=advDiv.previousElementSibling.querySelector('.adv-arrow'); if(arr) arr.style.transform='rotate(90deg)'; }
+}
 if(_ss&&g('sessionToken')) g('sessionToken').value=_ss;
 
 </script>
