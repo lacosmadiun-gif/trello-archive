@@ -98,6 +98,7 @@ select:focus,.nip:focus{border-color:var(--accent)}
 
 /* ─ Archive card ─ */
 .ac{background:var(--s1);border:1px solid var(--border);border-radius:13px;overflow:hidden;cursor:pointer;transition:all .2s}
+.ac.focused{border-color:var(--accent);background:var(--s2)}
 .ac:hover{border-color:var(--accent);background:var(--s2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.1)}
 .cov{display:none}
 .cov-fade{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(7,10,16,.75))}
@@ -196,6 +197,44 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
   .stats{grid-template-columns:1fr 1fr}
   .frow{gap:6px}
 }
+
+/* ─ View toggles ─ */
+.vtoggle{display:flex;gap:4px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px}
+.vbtn{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:6px;display:flex;align-items:center;gap:4px;font-size:12px;font-family:inherit;transition:.15s}
+.vbtn.on{background:var(--s3);color:var(--text)}
+.vbtn:hover:not(.on){color:var(--label)}
+
+/* ─ List view ─ */
+.list-view .grid{display:flex;flex-direction:column;gap:6px}
+.list-view .ac{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px}
+.list-view .ac-body{padding:0;flex-direction:row;align-items:center;gap:10px;flex:1;min-width:0}
+.list-view .bpill{flex-shrink:0;min-width:120px}
+.list-view .act{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.list-view .acd{display:none}
+.list-view .lrow{flex-shrink:0}
+.list-view .mr{flex-shrink:0;margin-left:auto}
+
+/* ─ Timeline view ─ */
+.timeline{display:flex;flex-direction:column;gap:24px}
+.tl-month{border-left:2px solid var(--border);padding-left:20px;position:relative}
+.tl-month-hdr{position:absolute;left:-52px;width:44px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);font-weight:600;top:2px}
+.tl-dot{position:absolute;left:-5px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.tl-cards{display:flex;flex-direction:column;gap:6px}
+
+/* ─ Stats chart ─ */
+.chart-wrap{padding:8px 0}
+.chart-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.chart-label{width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;color:var(--label);flex-shrink:0}
+.chart-bar-bg{flex:1;background:var(--s3);border-radius:4px;height:20px;overflow:hidden}
+.chart-bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .4s ease}
+.chart-count{width:40px;font-family:'DM Mono',monospace;color:var(--muted);font-size:11px;flex-shrink:0}
+
+/* ─ Search syntax hint ─ */
+.syntax-hint{font-size:11px;color:var(--muted);padding:6px 12px;font-family:'DM Mono',monospace}
+.syntax-hint b{color:var(--accent)}
+
+/* ─ Keyboard shortcut badge ─ */
+.kbd{display:inline-block;background:var(--s3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);margin:0 2px}
 </style>
 </head>
 <body>
@@ -279,15 +318,7 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
         <span id="loadTxt">Muat Arsip</span>
       </button>
     </div>
-    <div class="fld" style="margin-top:12px">
-      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
-        Cloudflare Proxy URL <span style="color:var(--green);font-size:10px">(untuk load gambar)</span>
-      </label>
-      <input type="text" id="proxyUrl" placeholder="https://nama-worker.namakamu.workers.dev"
-        style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
-        oninput="localStorage.setItem('tproxy',this.value)"
-      />
-    </div>
+
     <div class="srow">
       <div class="sdot idle" id="sdot"></div>
       <span id="stxt">Masukkan API Key dan Token Trello Anda.</span>
@@ -321,7 +352,13 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
     <div class="sbar">
       <div class="sw">
         <svg width="15" height="15"><use href="#ic-search"/></svg>
-        <input type="text" id="qi" oninput="debouncedFilter()" placeholder="Cari nama kartu, deskripsi, label..."/>
+        <input type="text" id="qi" oninput="debouncedFilter()" placeholder="Cari... atau board:nama label:warna after:2025-01"/>
+      </div>
+      <div class="vtoggle" title="Ganti tampilan">
+        <button class="vbtn on" id="vGrid" onclick="setView('grid')" title="Grid"><svg width="13" height="13"><use href="#ic-board"/></svg></button>
+        <button class="vbtn" id="vList" onclick="setView('list')" title="List"><svg width="13" height="13"><use href="#ic-sort"/></svg></button>
+        <button class="vbtn" id="vTime" onclick="setView('timeline')" title="Timeline"><svg width="13" height="13"><use href="#ic-cal"/></svg></button>
+        <button class="vbtn" id="vStat" onclick="setView('stats')" title="Statistik"><svg width="13" height="13"><use href="#ic-tag"/></svg></button>
       </div>
       <button class="btn btn-g btn-sm" onclick="load()" title="Refresh"><svg width="14" height="14"><use href="#ic-refresh"/></svg></button>
       <button class="btn btn-r btn-sm" onclick="resetF()">
@@ -359,6 +396,7 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
     </div>
   </div>
 </div>
+<div id="sentinel" style="height:1px"></div>
 
 <!-- Modal -->
 <div class="ov" id="ov" onclick="closeOv(event)">
@@ -409,10 +447,7 @@ async function trelloGet(path) {
 // <img> tag tidak kena CORS, session cookie otomatis dikirim
 // Cover gambar Trello tidak bisa diload cross-origin (tidak ada CORS header)
 // Kita gunakan cover COLOR dari Trello API sebagai visual cover kartu
-function getProxyUrl() {
-  const el = g('proxyUrl');
-  return el ? el.value.trim().replace(/\/$/, '') : '';
-}
+function getProxyUrl() { return ''; }
 
 function imgUrl(rawUrl) {
   if (!rawUrl) return null;
@@ -671,72 +706,216 @@ function resetF(){
   fI=false;fA=false;g('chI').className='chip';g('chA').className='chip';
   doFilter();
 }
-// Debounce search — tunggu 300ms setelah user berhenti ketik
+// ── View state ────────────────────────────────────────────────────────────
+let curView = 'grid'; // grid | list | timeline | stats
+
+function setView(v){
+  curView = v;
+  ['Grid','List','Time','Stat'].forEach(x => g('v'+x).classList.remove('on'));
+  const map = {grid:'Grid',list:'List',timeline:'Time',stats:'Stat'};
+  if(map[v]) g('v'+map[v]).classList.add('on');
+  const area = g('res');
+  area.className = v === 'list' ? 'list-view' : '';
+  doFilter();
+}
+
+// ── Debounce + Pagination ─────────────────────────────────────────────────
 let _dft = null;
-function debouncedFilter(){ clearTimeout(_dft); _dft = setTimeout(doFilter, 300); }
-
-// Pagination
-const PAGE_SIZE = 50;
+function debouncedFilter(){ clearTimeout(_dft); _dft = setTimeout(doFilter, 280); }
+const PAGE_SIZE = 60;
 let _page = 1;
+let _iObs = null;
 
-function doFilter(){
-  const q=g('qi').value.toLowerCase().trim();
-  const bF=g('bfil').value;
-  const day=parseInt(g('fd').value)||0;
-  const month=parseInt(g('fm').value)||0;
-  const year=parseInt(g('fy').value)||0;
-  const sort=g('ss').value;
-
-  let r=cards.filter(c=>{
-    if(bF&&c.boardId!==bF)return false;
-    if(fI&&!c.imageAttachments.length)return false;
-    if(fA&&!c.attachments.length)return false;
-    if(c.dateLastActivity){
-      const dt=new Date(c.dateLastActivity);
-      if(year&&dt.getFullYear()!==year)return false;
-      if(month&&dt.getMonth()+1!==month)return false;
-      if(day&&dt.getDate()!==day)return false;
+function setupInfiniteScroll(){
+  if(_iObs) _iObs.disconnect();
+  const sentinel = g('sentinel');
+  if(!sentinel) return;
+  _iObs = new IntersectionObserver(entries => {
+    if(entries[0].isIntersecting && window._fc && _page * PAGE_SIZE < window._fc.length){
+      _page++;
+      appendCards(window._fc, g('qi').value.toLowerCase().trim());
     }
-    if(q){const h=[c.name,c.desc,c.board,...(c.labels||[]).map(l=>l.name||'')].join(' ').toLowerCase();if(!h.includes(q))return false;}
+  }, { rootMargin: '200px' });
+  _iObs.observe(sentinel);
+}
+
+// ── Search syntax parser ──────────────────────────────────────────────────
+// Sintaks: board:nama label:warna after:2025-01 before:2025-12 has:image has:attachment
+function parseSyntax(raw){
+  const tokens = { board:null, label:null, after:null, before:null, has:[], q:'' };
+  let rest = raw;
+  const patterns = [
+    [/board:"([^"]+)"/gi, (m,v) => { tokens.board=v.toLowerCase(); rest=rest.replace(m,''); }],
+    [/board:(\S+)/gi,     (m,v) => { tokens.board=v.toLowerCase(); rest=rest.replace(m,''); }],
+    [/label:"([^"]+)"/gi, (m,v) => { tokens.label=v.toLowerCase(); rest=rest.replace(m,''); }],
+    [/label:(\S+)/gi,     (m,v) => { tokens.label=v.toLowerCase(); rest=rest.replace(m,''); }],
+    [/after:(\S+)/gi,     (m,v) => { tokens.after=new Date(v); rest=rest.replace(m,''); }],
+    [/before:(\S+)/gi,    (m,v) => { tokens.before=new Date(v); rest=rest.replace(m,''); }],
+    [/has:(image|attachment)/gi, (m,v) => { tokens.has.push(v.toLowerCase()); rest=rest.replace(m,''); }],
+  ];
+  patterns.forEach(([re, fn]) => {
+    let match;
+    const re2 = new RegExp(re.source, re.flags);
+    while((match = re2.exec(raw)) !== null) fn(match[0], match[1]);
+  });
+  tokens.q = rest.trim();
+  return tokens;
+}
+
+// ── doFilter ─────────────────────────────────────────────────────────────
+function doFilter(){
+  const raw = g('qi').value.toLowerCase().trim();
+  const syn = parseSyntax(raw);
+  const bF  = g('bfil').value;
+  const day = parseInt(g('fd').value)||0;
+  const month = parseInt(g('fm').value)||0;
+  const year  = parseInt(g('fy').value)||0;
+  const sort  = g('ss').value;
+
+  let r = cards.filter(c => {
+    if(bF && c.boardId !== bF) return false;
+    if(fI && !c.imageAttachments.length) return false;
+    if(fA && !c.attachments.length) return false;
+    if(c.dateLastActivity){
+      const dt = new Date(c.dateLastActivity);
+      if(year  && dt.getFullYear() !== year)   return false;
+      if(month && dt.getMonth()+1 !== month)   return false;
+      if(day   && dt.getDate() !== day)        return false;
+      if(syn.after  && dt < syn.after)         return false;
+      if(syn.before && dt > syn.before)        return false;
+    }
+    if(syn.board  && !c.board.toLowerCase().includes(syn.board))   return false;
+    if(syn.label  && !(c.labels||[]).some(l=>(l.name||'').toLowerCase().includes(syn.label)||(l.color||'').toLowerCase().includes(syn.label))) return false;
+    if(syn.has.includes('image')      && !c.imageAttachments.length) return false;
+    if(syn.has.includes('attachment') && !c.attachments.length)      return false;
+    if(syn.q){
+      const h = [c.name, c.desc, c.board, ...(c.labels||[]).map(l=>l.name||'')].join(' ').toLowerCase();
+      if(!h.includes(syn.q)) return false;
+    }
     return true;
   });
-  r.sort((a,b)=>{
-    if(sort==='name')return a.name.localeCompare(b.name);
-    if(sort==='name-z')return b.name.localeCompare(a.name);
-    if(sort==='date')return new Date(b.dateLastActivity||0)-new Date(a.dateLastActivity||0);
-    if(sort==='date-a')return new Date(a.dateLastActivity||0)-new Date(b.dateLastActivity||0);
+
+  r.sort((a,b) => {
+    if(sort==='name')   return a.name.localeCompare(b.name);
+    if(sort==='name-z') return b.name.localeCompare(a.name);
+    if(sort==='date')   return new Date(b.dateLastActivity||0) - new Date(a.dateLastActivity||0);
+    if(sort==='date-a') return new Date(a.dateLastActivity||0) - new Date(b.dateLastActivity||0);
     return 0;
   });
-  window._fc=r;
-  _page=1;
-  renderCards(r,q);
+
+  window._fc = r;
+  _page = 1;
+
+  if(curView === 'stats')    renderStats(r);
+  else if(curView === 'timeline') renderTimeline(r, syn.q);
+  else renderCards(r, syn.q);
 }
 
-// ── Render ────────────────────────────────────────────────────────────────
-function renderCard(c,i,q){
-  const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
-  const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,120),q)}</div>`:'';
-  const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''}${c.imageAttachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>${fmtDT(c.dateLastActivity)}</span></div>`;
-  return `<div class="ac" onclick="openCard(${i})"><div class="ac-body"><div class="bpill">${esc(c.board)}</div>${lbls?`<div class="lrow">${lbls}</div>`:''}<div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
-}
-
-function renderCards(items,q=''){
-  const area=g('res');
+// ── renderCards (grid/list + infinite scroll) ─────────────────────────────
+function renderCards(items, q=''){
+  const area = g('res');
+  area.className = curView === 'list' ? 'list-view' : '';
   if(!items.length){
-    area.innerHTML=`<div class="empty"><div class="ei"><svg width="22" height="22" style="color:var(--muted)"><use href="#ic-search"/></svg></div><h3>${T('nor')}</h3><p>${T('nord')}</p></div>`;
+    area.innerHTML = `<div class="empty"><div class="ei"><svg width="22" height="22" style="color:var(--muted)"><use href="#ic-search"/></svg></div><h3>${T('nor')}</h3><p>${T('nord')}</p></div>`;
     return;
   }
-  const slice = items.slice(0, _page * PAGE_SIZE);
-  const hdr=`<div class="rh"><span class="rc">${T('shw')} <b>${slice.length}</b> ${T('of')} ${items.length} ${T('cl')}</span></div>`;
-  const html = slice.map((c,i) => renderCard(c,i,q)).join('');
-  area.innerHTML = hdr + `<div class="grid">${html}</div>` +
-    (items.length > slice.length ? `<div id="loadMore" style="text-align:center;padding:24px"><button class="btn btn-g" onclick="loadMore()">Muat ${Math.min(PAGE_SIZE, items.length-slice.length)} kartu lagi</button></div>` : '');
+  const slice = items.slice(0, PAGE_SIZE);
+  const hdr = `<div class="rh"><span class="rc">${T('shw')} <b>${items.length}</b> ${T('of')} ${cards.length} ${T('cl')}</span></div>`;
+  area.innerHTML = hdr + `<div class="grid">${slice.map((c,i)=>renderCard(c,i,q)).join('')}</div>`;
+  setupInfiniteScroll();
 }
 
-function loadMore(){
-  _page++;
-  renderCards(window._fc, g('qi').value.toLowerCase().trim());
-  document.getElementById('loadMore')?.scrollIntoView({behavior:'smooth',block:'center'});
+function appendCards(items, q=''){
+  const grid = g('res').querySelector('.grid');
+  if(!grid) return;
+  const slice = items.slice((_page-1)*PAGE_SIZE, _page*PAGE_SIZE);
+  grid.insertAdjacentHTML('beforeend', slice.map((c,i)=>renderCard(c,(_page-1)*PAGE_SIZE+i,q)).join(''));
+  // Update counter
+  const rc = g('res').querySelector('.rc');
+  if(rc) rc.innerHTML = `${T('shw')} <b>${Math.min(_page*PAGE_SIZE, items.length)}</b> ${T('of')} ${cards.length} ${T('cl')}`;
+}
+
+// ── renderTimeline ────────────────────────────────────────────────────────
+function renderTimeline(items, q=''){
+  const area = g('res');
+  area.className = '';
+  if(!items.length){ area.innerHTML=`<div class="empty"><div class="ei"><svg width="22" height="22" style="color:var(--muted)"><use href="#ic-search"/></svg></div><h3>${T('nor')}</h3><p>${T('nord')}</p></div>`; return; }
+  // Group by year-month
+  const groups = {};
+  items.forEach((c,i) => {
+    const d = c.dateLastActivity ? new Date(c.dateLastActivity) : null;
+    const key = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'unknown';
+    if(!groups[key]) groups[key] = [];
+    groups[key].push({c,i});
+  });
+  const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const sorted = Object.keys(groups).sort().reverse();
+  const hdr = `<div class="rh"><span class="rc">${T('shw')} <b>${items.length}</b> ${T('of')} ${cards.length} ${T('cl')}</span></div>`;
+  const html = sorted.map(key => {
+    const [yr, mo] = key.split('-');
+    const label = key === 'unknown' ? '?' : `${monthNames[parseInt(mo)-1]} ${yr}`;
+    const cardsHtml = groups[key].map(({c,i}) => renderCard(c,i,q)).join('');
+    return `<div class="tl-month">
+      <div class="tl-month-hdr">${label}</div>
+      <div class="tl-dot"></div>
+      <div class="tl-cards grid">${cardsHtml}</div>
+    </div>`;
+  }).join('');
+  area.innerHTML = hdr + `<div class="timeline" style="padding-left:60px;margin-top:16px">${html}</div>`;
+}
+
+// ── renderStats ───────────────────────────────────────────────────────────
+function renderStats(items){
+  const area = g('res');
+  area.className = '';
+  if(!items.length){ area.innerHTML=`<div class="empty"><div class="ei"><svg width="22" height="22" style="color:var(--muted)"><use href="#ic-search"/></svg></div><h3>${T('nor')}</h3><p>${T('nord')}</p></div>`; return; }
+
+  // Per board
+  const byBoard = {};
+  items.forEach(c => { byBoard[c.board] = (byBoard[c.board]||0)+1; });
+  const boardSorted = Object.entries(byBoard).sort((a,b)=>b[1]-a[1]);
+  const maxB = boardSorted[0]?.[1] || 1;
+
+  // Per month
+  const byMonth = {};
+  items.forEach(c => {
+    const d = c.dateLastActivity ? new Date(c.dateLastActivity) : null;
+    if(!d) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    byMonth[key] = (byMonth[key]||0)+1;
+  });
+  const monthSorted = Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0]));
+  const maxM = monthSorted.reduce((m,e)=>Math.max(m,e[1]),1);
+  const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+  area.innerHTML = `
+    <div class="rh"><span class="rc">${T('shw')} <b>${items.length}</b> ${T('of')} ${cards.length} ${T('cl')}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+      <div class="box" style="margin:0">
+        <div class="sec-lbl" style="margin-bottom:12px"><svg width="12" height="12"><use href="#ic-board"/></svg> Kartu per Board</div>
+        <div class="chart-wrap">
+          ${boardSorted.slice(0,15).map(([name,cnt])=>`
+            <div class="chart-bar-row">
+              <div class="chart-label" title="${esc(name)}">${esc(name)}</div>
+              <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${(cnt/maxB*100).toFixed(1)}%"></div></div>
+              <div class="chart-count">${cnt}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="box" style="margin:0">
+        <div class="sec-lbl" style="margin-bottom:12px"><svg width="12" height="12"><use href="#ic-cal"/></svg> Kartu per Bulan</div>
+        <div class="chart-wrap">
+          ${monthSorted.slice(-18).map(([key,cnt])=>{
+            const [yr,mo]=key.split('-');
+            return `<div class="chart-bar-row">
+              <div class="chart-label">${monthNames[parseInt(mo)-1]} ${yr}</div>
+              <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${(cnt/maxM*100).toFixed(1)}%;background:var(--purple)"></div></div>
+              <div class="chart-count">${cnt}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
 }
 
 
@@ -866,15 +1045,49 @@ function renderAct(){
     </div>`).join('')}</div>`;
 }
 
+// ── Keyboard shortcuts ───────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // / → fokus search
+  if(e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
+    e.preventDefault();
+    g('qi')?.focus();
+    return;
+  }
+  // Esc → tutup modal / clear search
+  if(e.key === 'Escape'){
+    if(document.getElementById('ov')?.classList.contains('open')){ closeM(); return; }
+    if(g('qi')?.value){ g('qi').value=''; doFilter(); return; }
+  }
+  // G/L/T/S → ganti view
+  if(document.activeElement.tagName === 'INPUT') return;
+  if(e.key === 'g') setView('grid');
+  if(e.key === 'l') setView('list');
+  if(e.key === 't') setView('timeline');
+  if(e.key === 's' && !e.ctrlKey && !e.metaKey) setView('stats');
+  // J/K → navigasi kartu
+  if((e.key === 'j' || e.key === 'k') && window._fc?.length){
+    const cards_el = document.querySelectorAll('.ac');
+    if(!cards_el.length) return;
+    const cur = document.querySelector('.ac.focused');
+    let idx = cur ? [...cards_el].indexOf(cur) : -1;
+    if(cur) cur.classList.remove('focused');
+    idx = e.key === 'j' ? Math.min(idx+1, cards_el.length-1) : Math.max(idx-1, 0);
+    cards_el[idx]?.classList.add('focused');
+    cards_el[idx]?.scrollIntoView({block:'nearest'});
+  }
+  // Enter → buka kartu yang di-focus
+  if(e.key === 'Enter'){
+    document.querySelector('.ac.focused')?.click();
+  }
+});
+
 // Init
 applyLang();
 // Load saved key+token
 const _sk=localStorage.getItem('tkey'), _st=localStorage.getItem('ttok');
 if(_sk&&g('apiKey')) g('apiKey').value=_sk;
 if(_st&&g('apiToken')) g('apiToken').value=_st;
-// Load saved proxy URL
-const _saved = localStorage.getItem('tproxy');
-if (_saved && g('proxyUrl')) g('proxyUrl').value = _saved;
+
 </script>
 </body>
 </html>
