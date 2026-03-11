@@ -811,6 +811,14 @@ function doFilter(){
   else renderCards(r, syn.q);
 }
 
+// ── Render single card ───────────────────────────────────────────────────
+function renderCard(c,i,q){
+  const lbls=(c.labels||[]).map(l=>`<span class="lp" style="background:${lc(l.color)}">${esc(l.name||l.color)}</span>`).join('');
+  const dsc=c.desc?`<div class="acd">${hl(c.desc.slice(0,120),q)}</div>`:'';
+  const mt=`<div class="mr">${c.attachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-clip"/></svg>${c.attachments.length}</span>`:''}${c.imageAttachments.length?`<span class="mi"><svg width="12" height="12"><use href="#ic-img"/></svg>${c.imageAttachments.length}</span>`:''}<span class="mi"><svg width="12" height="12"><use href="#ic-cal"/></svg>${fmtDT(c.dateLastActivity)}</span></div>`;
+  return `<div class="ac" onclick="openCard(${i})"><div class="ac-body"><div class="bpill">${esc(c.board)}</div>${lbls?`<div class="lrow">${lbls}</div>`:''}<div class="act">${hl(c.name,q)}</div>${dsc}${mt}</div></div>`;
+}
+
 // ── renderCards (grid/list + infinite scroll) ─────────────────────────────
 function renderCards(items, q=''){
   const area = g('res');
