@@ -319,6 +319,27 @@ mark{background:rgba(99,179,237,.25);color:var(--text);border-radius:2px;padding
       </button>
     </div>
 
+    <div class="fld" style="margin-top:12px">
+      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
+        Cloudflare Proxy URL
+      </label>
+      <input type="text" id="proxyUrl" placeholder="https://trello-img-proxy.lacosmadiun.workers.dev"
+        style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
+        oninput="localStorage.setItem('tproxy',this.value)"
+      />
+    </div>
+    <div class="fld" style="margin-top:8px">
+      <label style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:5px">
+        Trello Session Cookie <span style="color:var(--muted);font-size:10px">(Application → Cookies → cloud.session.token)</span>
+      </label>
+      <div class="inp-wrap">
+        <input type="password" id="sessionToken" placeholder="eyJraWQiOiJzZXNzaW9uLXNlcnZpY2UvcHJvZC0xNzM4Nzk0ODc0IiwiYWxnIjoiUlMyNTYifQ.eyJhc3NvY2lhdGlvbnMiOltdLCJzdWIiOiI2MjBiMWY4Y2VmMmJkNTAwNmFlOGIxODQiLCJlbWFpbERvbWFpbiI6ImdtYWlsLmNvbSIsImltcGVyc29uYXRpb24iOltdLCJjcmVhdGVkIjoxNzY4MjAxMTIxLCJyZWZyZXNoVGltZW91dCI6MTc3MzIxNzk3NSwidmVyaWZpZWQiOnRydWUsImlzcyI6InNlc3Npb24tc2VydmljZSIsImRvbWFpbnMiOlsidHJlbGxvLmNvbSJdLCJzZXNzaW9uSWQiOiIwOGJiYzA2Yy0xNTVhLTRlM2YtYTA1Yi01ODliZTRmN2FjMWYiLCJzdGVwVXBzIjpbXSwiYXVkIjoiaWRlbnRpdHkiLCJuYmYiOjE3NzMyMTczNzUsImV4cCI6MTc3NTgwOTM3NSwiaWF0IjoxNzczMjE3Mzc1LCJlbWFpbCI6ImxhY29zbWFkaXVuQGdtYWlsLmNvbSIsImp0aSI6IjA4YmJjMDZjLTE1NWEtNGUzZi1hMDViLTU4OWJlNGY3YWMxZiJ9.lvFkp4iutIQvMJvBNw07tuV1YZYNDQBGFGY4gRqQn3Xtb47ssM2aVgpbGK58yslTYylxw9zw2zNQh1wAoORMqWm8oYowpz83VFJ-aJQYVpjQwxzHcOF90DVvitkr5a6kq2PhLm_bJ-rrDIrhmPe2w7ZBIg71htA19pXw7o2kMLTudl8QDWOOfKDqOCqzLXqPw9iCCYiYg0KCP5SPi3T-IBK-MxaIlR1cN2Q1qtmGTH3HdBh1_owOFt7FO2ZHtP0KTsYYMJl_C-HDh0nBBtTh348p2peJAibPS6LhvwGv0SUnktqTSyESGcgx_ETZa7Nn6HkadqjRFcsBEwxznFfGTg"
+          style="width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:9px;font-family:'DM Mono',monospace;font-size:12px;outline:none"
+          oninput="localStorage.setItem('tsession',this.value)"
+        />
+        <button class="eye" onclick="tv('sessionToken','eST')"><svg width="14" height="14" id="eST"><use href="#ic-eye"/></svg></button>
+      </div>
+    </div>
     <div class="srow">
       <div class="sdot idle" id="sdot"></div>
       <span id="stxt">Masukkan API Key dan Token Trello Anda.</span>
@@ -447,13 +468,28 @@ async function trelloGet(path) {
 // <img> tag tidak kena CORS, session cookie otomatis dikirim
 // Cover gambar Trello tidak bisa diload cross-origin (tidak ada CORS header)
 // Kita gunakan cover COLOR dari Trello API sebagai visual cover kartu
-function getProxyUrl() { return ''; }
+function getProxyUrl() {
+  const el = g('proxyUrl');
+  return el ? el.value.trim().replace(/\/$/, '') : '';
+}
+function getSessionToken() {
+  const el = g('sessionToken');
+  return el ? el.value.trim() : '';
+}
 
 function imgUrl(rawUrl) {
   if (!rawUrl) return null;
-  // Pakai URL langsung — browser kirim session cookie Trello otomatis
-  // Ini cara yang sama seperti Trello web app sendiri
-  return rawUrl;
+  const proxy = getProxyUrl();
+  const session = getSessionToken();
+  if (!proxy) return rawUrl; // fallback langsung (butuh login Trello di browser)
+  // Routing lewat proxy dengan session cookie
+  let url = rawUrl.replace(/[?&](key|token)=[^&]*/g,'').replace(/[?&]+$/,'');
+  const key = g('apiKey').value.trim();
+  const tok = g('apiToken').value.trim();
+  url += (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key) + '&token=' + encodeURIComponent(tok);
+  let proxyUrl = proxy + '?url=' + encodeURIComponent(url);
+  if (session) proxyUrl += '&ct=' + encodeURIComponent(session);
+  return proxyUrl;
 }
 function imgBlobUrl(rawUrl) { return Promise.resolve(imgUrl(rawUrl)); }
 
@@ -1095,6 +1131,10 @@ applyLang();
 const _sk=localStorage.getItem('tkey'), _st=localStorage.getItem('ttok');
 if(_sk&&g('apiKey')) g('apiKey').value=_sk;
 if(_st&&g('apiToken')) g('apiToken').value=_st;
+// Load saved proxy + session
+const _sp=localStorage.getItem('tproxy'), _ss=localStorage.getItem('tsession');
+if(_sp&&g('proxyUrl')) g('proxyUrl').value=_sp;
+if(_ss&&g('sessionToken')) g('sessionToken').value=_ss;
 
 </script>
 </body>
